@@ -4,14 +4,39 @@ import { motion } from 'motion/react';
 import { LogIn, UserPlus, Loader2, Check, Eye, EyeOff, AlertCircle } from 'lucide-react';
 import bgImage from '../assets/images/bg_image_1781064072635.png';
 
-export default function Auth() {
+// Turn Supabase's technical messages into plain language
+function friendlyError(err: any): string {
+  const msg: string = err?.message || '';
+  const code: string = err?.code || '';
+  if (code === 'email_not_confirmed' || /email not confirmed/i.test(msg)) {
+    return 'Please confirm your email first. Check your inbox (and spam) for the confirmation link.';
+  }
+  if (code === 'over_email_send_rate_limit' || /rate limit/i.test(msg)) {
+    return 'Too many emails were sent just now. Please wait a few minutes and try again.';
+  }
+  if (/only request this after/i.test(msg)) {
+    return 'Please wait a minute before requesting another email.';
+  }
+  if (code === 'weak_password' || /password should be/i.test(msg)) {
+    return 'Please choose a stronger password (at least 6 characters).';
+  }
+  if (/user already registered/i.test(msg)) {
+    return 'This email is already registered. Please log in or reset your password.';
+  }
+  if (/invalid email/i.test(msg) || code === 'email_address_invalid') {
+    return 'That email address doesn’t look right. Please check it.';
+  }
+  return msg || 'Something went wrong. Please try again.';
+}
+
+export default function Auth({ initialError = null }: { initialError?: string | null }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState('');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(initialError);
   const [attempts, setAttempts] = useState(0);
   const [view, setView] = useState<'login' | 'signup' | 'forgot'>('login');
 
@@ -26,10 +51,10 @@ export default function Auth() {
     try {
       if (view === 'forgot') {
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-          redirectTo: window.location.origin,
+          redirectTo: `${window.location.origin}/reset-password`,
         });
         if (error) throw error;
-        setSuccess('Password reset link sent! Check your email.');
+        setSuccess('If an account exists for this email, a reset link is on its way. Check your inbox (and spam).');
         return;
       }
 
@@ -46,7 +71,7 @@ export default function Auth() {
           if (error.message.includes('Invalid login credentials')) {
             setError('Invalid email or password. Please try again.');
           } else {
-            throw error;
+            setError(friendlyError(error));
           }
           setLoading(false);
           return;
@@ -58,6 +83,7 @@ export default function Auth() {
           password,
           options: {
             data: { full_name: fullName },
+            emailRedirectTo: window.location.origin,
           },
         });
         if (error) throw error;
@@ -65,17 +91,17 @@ export default function Auth() {
         // If session is returned immediately (email confirm disabled), we're good
         if (data.session) {
           setSuccess('Account created! Welcome to PSG Perth.');
+        } else if (data.user && data.user.identities && data.user.identities.length === 0) {
+          // Supabase hides existing accounts: an empty identities list means the email is taken
+          setError('This email is already registered. Please log in or reset your password.');
+          return;
         } else {
-          setSuccess("Log in now to confirm your spot or so..");
+          setSuccess('Almost there! Check your email and click the confirmation link, then log in here.');
           setView('login');
         }
       }
     } catch (err: any) {
-      if (err.message.includes('User already registered')) {
-        setError('This email is already registered. Please try to Login or Reset Password.');
-      } else {
-        setError(err.message);
-      }
+      setError(friendlyError(err));
     } finally {
       setLoading(false);
     }
@@ -204,7 +230,7 @@ export default function Auth() {
             <div className="flex justify-end">
               <button 
                 type="button"
-                onClick={() => setView('forgot')}
+                onClick={() => { setView('forgot'); setError(null); setSuccess(null); }}
                 className="text-[10px] uppercase font-black text-white/40 hover:text-white transition-colors"
               >
                 Forgot Password?
@@ -256,7 +282,7 @@ export default function Auth() {
           {(isForgot) && (
             <button 
               type="button"
-              onClick={() => setView('login')}
+              onClick={() => { setView('login'); setError(null); setSuccess(null); }}
               className="w-full text-white/40 text-xs font-bold hover:text-white transition-colors py-2"
             >
               Back to Login
