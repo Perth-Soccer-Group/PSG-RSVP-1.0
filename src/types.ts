@@ -1,6 +1,7 @@
 export interface Profile {
   id: string;
   full_name: string;
+  email?: string;
   phone_number?: string;
   is_admin: boolean;
   is_approved: boolean;

@@ -157,18 +157,20 @@ export default function App() {
         if (newProfile) {
           setProfile({
             ...newProfile,
+            email: email || newProfile.email,
             is_approved: newProfile.is_approved ?? true,
             is_admin: isCharley ? true : !!newProfile.is_admin,
-            game_tokens: newProfile.game_tokens ?? (isCharley ? 99 : 0)
+            game_tokens: newProfile.game_tokens ?? 0
           });
         } else {
           // Fallback if RLS or insert completely failed but we want them to log in
           setProfile({
             id: userId,
             full_name: email ? email.split('@')[0] : 'New Player',
+            email,
             is_admin: isCharley ? true : false,
             is_approved: isCharley ? true : false,
-            game_tokens: isCharley ? 99 : 0,
+            game_tokens: 0,
             created_at: new Date().toISOString()
           });
         }
@@ -179,9 +181,10 @@ export default function App() {
         setProfile({
           id: userId,
           full_name: email ? email.split('@')[0] : 'Player',
+          email,
           is_admin: isCharley ? true : false,
           is_approved: isCharley ? true : false,
-          game_tokens: isCharley ? 99 : 0,
+          game_tokens: 0,
           created_at: new Date().toISOString()
         });
       } else if (data) {
@@ -230,16 +233,18 @@ export default function App() {
           // Even if update failed on backend due to RLS, make sure we force is_admin: true on client side!
           setProfile({
             ...(updatedProfile || data),
+            email: email || (updatedProfile || data).email,
             is_admin: true,
             is_approved: true,
-            game_tokens: (updatedProfile || data).game_tokens ?? 99
+            game_tokens: (updatedProfile || data).game_tokens ?? 0
           });
         } else {
           setProfile({
             ...data,
+            email: email || data.email,
             is_approved: data.is_approved ?? true,
             is_admin: isCharley ? true : !!data.is_admin,
-            game_tokens: data.game_tokens ?? (isCharley ? 99 : 0)
+            game_tokens: data.game_tokens ?? 0
           });
         }
       }

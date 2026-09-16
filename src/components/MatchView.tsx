@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Game, RSVP, Profile, Vote as VoteType, MSPVote } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, MapPin, Clock, Trophy, Shuffle, CheckCircle2, AlertCircle, ShieldAlert, Loader2, Vote as VoteIcon, Check, RotateCw, X, Frown, Ticket } from 'lucide-react';
+import { Users, MapPin, Clock, Trophy, Shuffle, CheckCircle2, AlertCircle, ShieldAlert, Loader2, Vote as VoteIcon, Check, RotateCw, X, Frown, Ticket, Copy, Mail } from 'lucide-react';
 import { cn, formatDate, formatTime, formatRsvpTime } from '../lib/utils';
 import athleteRunningImg from '../assets/images/ronaldo_2002_running_1781141795225.png';
 import athleteSittingImg from '../assets/images/athlete_sitting_1781141114349.png';
@@ -23,6 +23,18 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showConfirmCancel, setShowConfirmCancel] = useState(false);
+  const [showNoTokensModal, setShowNoTokensModal] = useState(false);
+  const [copiedPayId, setCopiedPayId] = useState(false);
+
+  const handleCopyPayID = async () => {
+    try {
+      await navigator.clipboard.writeText("charley.moraes@gmail.com");
+      setCopiedPayId(true);
+      setTimeout(() => setCopiedPayId(false), 2500);
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   useEffect(() => {
     fetchNextGame();
@@ -178,10 +190,31 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
           return;
         }
 
-        // Token check: Non-admins must have at least 1 game token
-        const currentTokens = profile.game_tokens ?? 0;
-        if (!profile.is_admin && currentTokens <= 0) {
-          setError("You don't have game tokens remaining (0 available). Please talk to the Admin to pay cash (for pitch lights) and get 20 more games credited!");
+        // Token check: All players must have at least 1 game token to RSVP
+        const localTokens = profile?.game_tokens ?? 0;
+        if (localTokens <= 0) {
+          setShowNoTokensModal(true);
+          setError('You have 0 game tokens left. Contact the President / Admin (Charley Moraes) to pay via PayID and get 20 games added.');
+          return;
+        }
+
+        let currentTokens = localTokens;
+        try {
+          const { data: freshProf } = await supabase
+            .from('profiles')
+            .select('game_tokens')
+            .eq('id', user.id)
+            .single();
+          if (freshProf && freshProf.game_tokens !== undefined && freshProf.game_tokens !== null) {
+            currentTokens = freshProf.game_tokens;
+          }
+        } catch (tokFetchErr) {
+          console.warn('Could not fetch fresh profile tokens:', tokFetchErr);
+        }
+
+        if (currentTokens <= 0) {
+          setShowNoTokensModal(true);
+          setError('You have 0 game tokens left. Contact the President / Admin (Charley Moraes) to pay via PayID and get 20 games added.');
           return;
         }
 
@@ -204,7 +237,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
         }
 
         // If player is directly confirmed into the squad, deduct 1 game token
-        if (newStatus === 'confirmed' && !profile.is_admin && currentTokens > 0) {
+        if (newStatus === 'confirmed' && currentTokens > 0) {
           try {
             await supabase
               .from('profiles')
@@ -216,10 +249,10 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
         }
 
         if (newStatus === 'confirmed') {
-          if (currentTokens === 1 && !profile.is_admin) {
-            setSuccess("You're on it! ⚠️ That was your LAST game token — please remember to pay cash to the admin for your next 20 games!");
+          if (currentTokens === 1) {
+            setSuccess("You're on it! ⚠️ That was your 20th game (0 tokens remaining). Please contact the president/admin to pay via Australian PayID (or cash) before your next match!");
           } else {
-            setSuccess("You're on it! 1 game token used.");
+            setSuccess(`You're on it! 1 game token used (${currentTokens - 1} remaining).`);
           }
         } else {
           setSuccess('Added to waiting list.');
@@ -256,7 +289,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
         }
 
         // Refund token if a confirmed player cancels
-        if (wasConfirmed && !profile.is_admin) {
+        if (wasConfirmed) {
           try {
             const { data: freshP } = await supabase.from('profiles').select('game_tokens').eq('id', user.id).single();
             const curr = freshP?.game_tokens ?? profile.game_tokens ?? 0;
@@ -273,8 +306,8 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
             await supabase.from('rsvps').update({ status: 'confirmed' }).eq('id', firstWaiting.id);
             // Deduct token from promoted player
             try {
-              const { data: promotedP } = await supabase.from('profiles').select('game_tokens, is_admin').eq('id', firstWaiting.user_id).single();
-              if (promotedP && !promotedP.is_admin && promotedP.game_tokens && promotedP.game_tokens > 0) {
+              const { data: promotedP } = await supabase.from('profiles').select('game_tokens').eq('id', firstWaiting.user_id).single();
+              if (promotedP && promotedP.game_tokens && promotedP.game_tokens > 0) {
                 await supabase.from('profiles').update({ game_tokens: promotedP.game_tokens - 1 }).eq('id', firstWaiting.user_id);
               }
             } catch (promoErr) {
@@ -642,29 +675,37 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
           {/* Game Tokens Status Banner / Warning */}
           {(() => {
             const userTokens = profile?.game_tokens ?? 0;
-            const isOutOfTokens = !profile?.is_admin && userTokens <= 0;
-            const isOneTokenLeft = !profile?.is_admin && userTokens === 1;
+            const isOutOfTokens = userTokens <= 0;
+            const isOneTokenLeft = userTokens === 1;
 
             if (isOutOfTokens && !isIn) {
               return (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="w-full max-w-lg p-5 rounded-3xl bg-red-500/10 border border-red-500/30 text-center space-y-2.5 backdrop-blur-md shadow-[0_0_30px_rgba(239,68,68,0.15)]"
+                  onClick={() => setShowNoTokensModal(true)}
+                  className="w-full max-w-lg p-5 rounded-3xl bg-red-500/10 border border-red-500/30 text-center space-y-2.5 backdrop-blur-md shadow-[0_0_30px_rgba(239,68,68,0.15)] cursor-pointer hover:border-red-500/50 hover:bg-red-500/15 transition-all group"
                 >
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-black uppercase tracking-wider border border-red-500/30">
                     <AlertCircle size={14} /> 0 Games Available
                   </div>
                   <h4 className="text-lg font-black tracking-tight text-white uppercase">
-                    Talk to the Admin to RSVP
+                    Contact President / Admin to RSVP
                   </h4>
                   <p className="text-xs text-white/70 leading-relaxed max-w-sm mx-auto">
-                    You have run out of game tokens. Payment is collected in cash (cash in hand for pitch lights). Talk to the admin to pay and get 20 more games credited.
+                    You have run out of game tokens. Payment is collected via <strong>Australian PayID</strong> (default) or cash for pitch lights. Contact the president/admin to pay and get 20 more games credited.
                   </p>
                   <div className="pt-1">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-black text-red-300 bg-red-500/20 px-4 py-2 rounded-full border border-red-500/30 tracking-wide">
-                      💬 Talk to the admin to solve
-                    </span>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowNoTokensModal(true);
+                      }}
+                      className="inline-flex items-center gap-1.5 text-xs font-black text-red-300 bg-red-500/25 px-4 py-2 rounded-full border border-red-500/40 tracking-wide hover:bg-red-500/40 transition-colors"
+                    >
+                      💬 Tap to Contact President / Admin
+                    </button>
                   </div>
                 </motion.div>
               );
@@ -681,21 +722,21 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                     <AlertCircle size={14} /> ⚠️ Only 1 Game Token Available!
                   </div>
                   <h4 className="text-lg font-black tracking-tight text-white uppercase">
-                    This is your LAST game before top-up
+                    This is your 20th game (Last Credit)
                   </h4>
                   <p className="text-xs text-amber-200/90 leading-relaxed max-w-sm mx-auto">
-                    You can join this match, but your token balance will reach <strong>0</strong>. Remember to bring cash to the pitch (for pitch lights) so the admin can credit your next 20 games!
+                    You can join this match, but your token balance will reach <strong>0</strong>. Remember to transfer via <strong>Australian PayID</strong> (or bring pitch lights cash) so the admin can credit your next 20 games!
                   </p>
                   <div className="pt-1">
                     <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-500/20 px-3.5 py-1.5 rounded-full border border-amber-500/30">
-                      💵 Bring cash to admin at pitch
+                      📱 PayID to Admin before next game
                     </span>
                   </div>
                 </motion.div>
               );
             }
 
-            if (isIn && userTokens === 0 && !profile?.is_admin) {
+            if (isIn && userTokens === 0) {
               return (
                 <motion.div 
                   initial={{ opacity: 0, scale: 0.95 }}
@@ -706,7 +747,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                     <Ticket size={13} /> You used your last game token for this match!
                   </div>
                   <p className="text-xs text-white/80 leading-relaxed max-w-sm mx-auto">
-                    You're locked into this game, but have 0 tokens left for future games. Please remember to pay the admin cash so they can credit your next 20 games!
+                    You're locked into this game, but have 0 tokens left for future games. Please contact the president/admin to pay via Australian PayID for your next 20 games!
                   </p>
                 </motion.div>
               );
@@ -716,9 +757,9 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
               <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-white/80">
                 <Ticket size={14} className="text-[#00ff66]" />
                 <span>
-                  You have <strong className="text-[#00ff66]">{profile?.is_admin ? `${userTokens} (Admin)` : userTokens}</strong> {userTokens === 1 ? 'game token' : 'game tokens'} available
+                  You have <strong className="text-[#00ff66]">{userTokens}</strong> {userTokens === 1 ? 'game token' : 'game tokens'} available
                 </span>
-                <span className="text-white/30 hidden sm:inline">• Cash in hand for pitch lights</span>
+                <span className="text-white/30 hidden sm:inline">• Australian PayID default</span>
               </div>
             );
           })()}
@@ -751,16 +792,22 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6 w-full max-w-3xl px-4 py-2">
               {(() => {
                 const userTokens = profile?.game_tokens ?? 0;
-                const isOutOfTokens = !profile?.is_admin && userTokens <= 0;
-                const isOneTokenLeft = !profile?.is_admin && userTokens === 1;
+                const isOutOfTokens = userTokens <= 0;
+                const isOneTokenLeft = userTokens === 1;
 
                 return (
                   <motion.button
                     type="button"
-                    onClick={() => handleRSVP(true)}
-                    disabled={actionLoading || isClosed || isIn || isOutOfTokens}
-                    whileHover={isClosed || isOutOfTokens ? {} : { scale: isOut ? 1 : 1.04, y: isOut ? 0 : -4 }}
-                    whileTap={isClosed || isOutOfTokens ? {} : { scale: isOut ? 1 : 0.98 }}
+                    onClick={() => {
+                      if (isOutOfTokens && !isIn) {
+                        setShowNoTokensModal(true);
+                        return;
+                      }
+                      handleRSVP(true);
+                    }}
+                    disabled={actionLoading || isClosed || isIn}
+                    whileHover={isClosed ? {} : { scale: isOut ? 1 : 1.04, y: isOut ? 0 : -4 }}
+                    whileTap={isClosed ? {} : { scale: isOut ? 1 : 0.98 }}
                     className={cn(
                       "relative w-full sm:w-64 md:w-72 h-80 sm:h-96 rounded-[2.5rem] overflow-hidden group border-4 transition-all duration-500 flex flex-col justify-end text-left",
                       isClosed
@@ -768,7 +815,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                             ? "border-white/20 shadow-none opacity-50 grayscale cursor-not-allowed" 
                             : "border-transparent opacity-20 grayscale cursor-not-allowed")
                         : isOutOfTokens && !isIn
-                          ? "border-red-500/30 opacity-60 grayscale cursor-not-allowed"
+                          ? "border-red-500/50 shadow-[0_0_30px_rgba(239,68,68,0.25)] opacity-95 hover:opacity-100 hover:border-red-400 cursor-pointer"
                           : isOneTokenLeft && !isIn
                             ? "border-amber-500/50 shadow-[0_0_25px_rgba(245,158,11,0.2)] opacity-95 hover:opacity-100 hover:border-amber-400 cursor-pointer"
                             : (isIn 
@@ -789,13 +836,15 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                       )}
                     />
 
-                    {/* Intense Green Tint blend overlay */}
+                    {/* Intense Green / Red Tint blend overlay */}
                     <div 
                       className={cn(
                         "absolute inset-0 transition-all duration-500",
                         !isClosed && isIn 
                           ? "bg-emerald-500/30 mix-blend-color opacity-100" 
-                          : !isClosed && !isOutOfTokens ? "bg-[#00ff66]/5 group-hover:bg-[#00ff66]/30 group-hover:mix-blend-color opacity-0 group-hover:opacity-100" : "opacity-0"
+                          : !isClosed && isOutOfTokens
+                            ? "bg-red-500/10 group-hover:bg-red-500/25 group-hover:mix-blend-color opacity-100"
+                            : !isClosed && !isOutOfTokens ? "bg-[#00ff66]/5 group-hover:bg-[#00ff66]/30 group-hover:mix-blend-color opacity-0 group-hover:opacity-100" : "opacity-0"
                       )} 
                     />
 
@@ -814,8 +863,8 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                       </div>
                     )}
                     {isOutOfTokens && !isIn && (
-                      <div className="absolute top-5 right-5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)]">
-                        No Tokens
+                      <div className="absolute top-5 right-5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)] animate-pulse">
+                        0 Tokens • Tap to Fix
                       </div>
                     )}
                     {isOneTokenLeft && !isIn && (
@@ -835,7 +884,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                             : (isIn ? "text-[#00ff66]" : "text-white/40 group-hover:text-white")
                       )}>
                         {(() => {
-                          if (isOutOfTokens && !isIn) return "Talk to Admin to Top Up";
+                          if (isOutOfTokens && !isIn) return "Tap to Contact President / Admin";
                           if (isOneTokenLeft && !isIn) return "⚠️ Final Game Token • Pay Admin Next";
                           if (!isIn) return "Ready to play?";
                           const myRSVP = rsvps.find(r => r.user_id === user?.id);
@@ -1098,6 +1147,118 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
           </div>
         </div>
       </div>
+
+      {/* No Tokens Remaining Modal */}
+      <AnimatePresence>
+        {showNoTokensModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.9, y: 20 }}
+              transition={{ type: "spring", duration: 0.4 }}
+              className="relative w-full max-w-md bg-[#161922] border border-red-500/40 rounded-3xl p-6 sm:p-8 shadow-[0_0_50px_rgba(239,68,68,0.25)] text-center space-y-5"
+            >
+              {/* Close Button */}
+              <button
+                type="button"
+                onClick={() => setShowNoTokensModal(false)}
+                className="absolute top-5 right-5 p-2 rounded-full text-white/50 hover:text-white hover:bg-white/10 transition-colors"
+              >
+                <X size={20} />
+              </button>
+
+              {/* Icon & Badge */}
+              <div className="mx-auto w-16 h-16 rounded-2xl bg-red-500/15 border border-red-500/30 flex items-center justify-center text-red-400 shadow-[0_0_20px_rgba(239,68,68,0.3)]">
+                <Ticket size={32} />
+              </div>
+
+              <div className="space-y-2">
+                <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-[11px] font-black uppercase tracking-wider border border-red-500/30">
+                  <AlertCircle size={13} /> 0 Games Available
+                </div>
+                <h3 className="text-xl sm:text-2xl font-black text-white uppercase tracking-tight">
+                  Cannot RSVP Without Tokens
+                </h3>
+                <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
+                  You have run out of game credits. You must contact the <strong className="text-white">President / Admin (Charley Moraes)</strong> to pay and get <strong className="text-[#00ff66]">20 games</strong> added to your account.
+                </p>
+              </div>
+
+              {/* Payment Details Box with 1-Click Copy */}
+              <div className="bg-[#0f1118] border border-white/10 rounded-2xl p-4 text-left space-y-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-black uppercase tracking-wider text-white/50">Payment Method</span>
+                  <span className="text-[10px] bg-pitch/20 text-pitch border border-pitch/30 px-2 py-0.5 rounded font-black uppercase tracking-wider">
+                    Default
+                  </span>
+                </div>
+                <div>
+                  <div className="text-sm font-bold text-white flex items-center gap-2">
+                    <span>🇦🇺 Australian PayID</span>
+                  </div>
+                  <p className="text-xs text-white/60 leading-relaxed mt-1">
+                    Australian PayID is the primary payment method (or cash in hand for pitch lights).
+                  </p>
+                </div>
+
+                <div className="flex items-center justify-between bg-white/5 p-2.5 rounded-xl border border-white/10 text-xs font-mono text-white">
+                  <span className="truncate">charley.moraes@gmail.com</span>
+                  <button
+                    type="button"
+                    onClick={handleCopyPayID}
+                    className="ml-2 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-sans text-[11px] font-bold flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
+                  >
+                    {copiedPayId ? (
+                      <>
+                        <Check size={12} className="text-emerald-400" /> Copied!
+                      </>
+                    ) : (
+                      <>
+                        <Copy size={12} /> Copy PayID
+                      </>
+                    )}
+                  </button>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    window.open('mailto:charley.moraes@gmail.com?subject=PSG%20Perth%20Game%20Tokens%20Top-Up&body=Hi%20Charley,%20I%20would%20like%20to%20pay%20via%20PayID%20and%20get%2020%20game%20tokens%20added%20to%20my%20account.', '_blank');
+                  }}
+                  className="w-full min-h-[44px] bg-[#00ff66] text-black py-3 rounded-2xl font-black text-xs uppercase tracking-wider hover:bg-[#00e65c] transition-all shadow-[0_0_20px_rgba(0,255,102,0.3)] flex items-center justify-center gap-2 cursor-pointer"
+                >
+                  <Mail size={15} /> Message Admin to Pay
+                </button>
+
+                {profile?.is_admin ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowNoTokensModal(false);
+                      onGoToAdmin();
+                    }}
+                    className="w-full min-h-[44px] bg-white/15 text-white py-3 rounded-2xl font-black text-xs uppercase tracking-wider hover:bg-white/20 transition-all cursor-pointer"
+                  >
+                    Open Admin Dashboard (Add Tokens) ⚡
+                  </button>
+                ) : null}
+
+                <button
+                  type="button"
+                  onClick={() => setShowNoTokensModal(false)}
+                  className="w-full min-h-[44px] bg-white/5 text-white/70 hover:text-white py-3 rounded-2xl font-black text-xs uppercase tracking-wider hover:bg-white/10 transition-all cursor-pointer"
+                >
+                  Understood • I'll Contact the Admin
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

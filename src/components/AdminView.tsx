@@ -4,8 +4,15 @@ import { Game, Profile } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
 import { Plus, Users, Shield, Trash2, Check, X, Copy, Flag, Share2, Trophy, Loader2, RotateCw, Frown, Ticket, AlertCircle, Edit3, Coins, Banknote, Sparkles } from 'lucide-react';
 import { cn, formatDate, formatTime } from '../lib/utils';
+import PlayersManagement from './PlayersManagement';
 
-export default function AdminView() {
+interface AdminViewProps {
+  initialTab?: 'matches' | 'players';
+  onTabChange?: (tab: 'matches' | 'players') => void;
+}
+
+export default function AdminView({ initialTab = 'matches', onTabChange }: AdminViewProps) {
+  const [adminTab, setAdminTab] = useState<'matches' | 'players'>(initialTab);
   const [games, setGames] = useState<Game[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,7 +32,7 @@ export default function AdminView() {
   // Token management state
   const [updatingTokenId, setUpdatingTokenId] = useState<string | null>(null);
   const [tokenEditModal, setTokenEditModal] = useState<{ id: string; name: string; tokens: number } | null>(null);
-  const [userTabFilter, setUserTabFilter] = useState<'all' | 'pending' | 'no_tokens' | 'one_token' | 'active'>('all');
+  const [userTabFilter, setUserTabFilter] = useState<'all' | 'pending' | 'no_tokens' | 'one_token' | 'paid' | 'active'>('all');
   const [sqlMigrationNeeded, setSqlMigrationNeeded] = useState(false);
 
   const showStatus = (type: 'success' | 'error', text: string) => {
@@ -560,11 +567,47 @@ export default function AdminView() {
   if (loading) return <div className="flex items-center justify-center h-64"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-pitch"></div></div>;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-12">
-      <div className="space-y-4">
-        <h1 className="text-5xl font-black tracking-tighter text-pitch italic">ADMIN PANEL</h1>
-        <p className="text-white/40 font-bold uppercase tracking-widest text-xs">Manage games, players and polls.</p>
+    <div className="max-w-5xl mx-auto space-y-10">
+      {/* Admin Panel Header & Sub-Tab Switcher */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="space-y-1">
+          <h1 className="text-4xl sm:text-5xl font-black tracking-tighter text-pitch italic">ADMIN PANEL</h1>
+          <p className="text-white/40 font-bold uppercase tracking-widest text-xs">Manage games, players and polls.</p>
+        </div>
+
+        {/* Reference-Inspired High Contrast Sub-Tab Switcher (No Stroke) */}
+        <div className="flex items-center gap-2 p-1.5 bg-[#181B26] rounded-full w-fit">
+          <button
+            onClick={() => { setAdminTab('matches'); onTabChange?.('matches'); }}
+            className={cn(
+              "px-5 py-2.5 rounded-full font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+              adminTab === 'matches'
+                ? "bg-white text-black shadow-md shadow-white/10"
+                : "text-white/60 hover:text-white"
+            )}
+          >
+            <Flag size={14} />
+            Matches
+          </button>
+          <button
+            onClick={() => { setAdminTab('players'); onTabChange?.('players'); }}
+            className={cn(
+              "px-5 py-2.5 rounded-full font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer",
+              adminTab === 'players'
+                ? "bg-[#0055FF] text-white shadow-md shadow-[#0055FF]/25"
+                : "text-white/60 hover:text-white"
+            )}
+          >
+            <Users size={14} />
+            Players Management
+          </button>
+        </div>
       </div>
+
+      {adminTab === 'players' ? (
+        <PlayersManagement onRefreshParent={fetchData} />
+      ) : (
+        <>
 
       {statusMessage && (
         <motion.div 
@@ -873,679 +916,31 @@ export default function AdminView() {
         </div>
       </section>
 
-      {/* User & Game Tokens Management */}
-      <section className="space-y-6">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <h2 className="text-3xl flex items-center gap-2 font-black tracking-tighter">
-              <Users className="text-pitch" /> PLAYERS & GAME TOKENS
-            </h2>
-            <p className="text-xs text-white/50 font-bold mt-1">
-              Manage player access and track prepaid game tokens (cash payments for lights).
-            </p>
-          </div>
-          <div className="relative">
-            <input 
-              type="text"
-              placeholder="Search by name or phone..."
-              value={searchTerm}
-              onChange={e => setSearchTerm(e.target.value)}
-              className="bg-white/5 border border-white/10 rounded-xl px-4 py-2 focus:border-pitch outline-none text-sm w-full md:w-64"
-            />
-          </div>
-        </div>
-
-        {/* Overview Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-          <button 
-            onClick={() => setUserTabFilter('all')}
-            className={cn(
-              "p-4 rounded-xl border text-left transition-all",
-              userTabFilter === 'all' ? "bg-white/10 border-pitch" : "bg-white/5 border-white/10 hover:bg-white/10"
-            )}
-          >
-            <div className="text-xs uppercase font-bold text-white/40">Total Players</div>
-            <div className="text-2xl font-black text-white mt-1">{profiles.length}</div>
-          </button>
-
-          <button 
-            onClick={() => setUserTabFilter('active')}
-            className={cn(
-              "p-4 rounded-xl border text-left transition-all",
-              userTabFilter === 'active' ? "bg-[#00ff66]/10 border-[#00ff66]" : "bg-white/5 border-white/10 hover:bg-white/10"
-            )}
-          >
-            <div className="text-xs uppercase font-bold text-[#00ff66]/70">Active Players</div>
-            <div className="text-2xl font-black text-[#00ff66] mt-1">{profiles.filter(p => p.is_approved).length}</div>
-          </button>
-
-          <button 
-            onClick={() => setUserTabFilter('no_tokens')}
-            className={cn(
-              "p-4 rounded-xl border text-left transition-all relative overflow-hidden",
-              userTabFilter === 'no_tokens' ? "bg-red-500/20 border-red-500" : "bg-red-500/10 border-red-500/30 hover:bg-red-500/15"
-            )}
-          >
-            <div className="text-xs uppercase font-black text-red-400 flex items-center gap-1">
-              <AlertCircle size={12} /> Needs Cash
-            </div>
-            <div className="text-2xl font-black text-red-400 mt-1">
-              {profiles.filter(p => p.is_approved && (p.game_tokens ?? 0) <= 0).length}
-            </div>
-            <div className="text-[10px] text-red-300/60 font-semibold mt-0.5">0 tokens (Blocked)</div>
-          </button>
-
-          <button 
-            onClick={() => setUserTabFilter('one_token')}
-            className={cn(
-              "p-4 rounded-xl border text-left transition-all relative overflow-hidden",
-              userTabFilter === 'one_token' ? "bg-amber-500/25 border-amber-500 shadow-lg shadow-amber-500/20" : "bg-amber-500/10 border-amber-500/30 hover:bg-amber-500/15"
-            )}
-          >
-            <div className="text-xs uppercase font-black text-amber-300 flex items-center gap-1">
-              <AlertCircle size={12} /> 1 Game Left
-            </div>
-            <div className="text-2xl font-black text-amber-300 mt-1">
-              {profiles.filter(p => p.is_approved && (p.game_tokens ?? 0) === 1).length}
-            </div>
-            <div className="text-[10px] text-amber-200/70 font-semibold mt-0.5">Pay cash next match</div>
-          </button>
-
-          <button 
-            onClick={() => setUserTabFilter('pending')}
-            className={cn(
-              "p-4 rounded-xl border text-left transition-all",
-              userTabFilter === 'pending' ? "bg-yellow-500/20 border-yellow-500" : "bg-white/5 border-white/10 hover:bg-white/10"
-            )}
-          >
-            <div className="text-xs uppercase font-bold text-yellow-500">Pending Approval</div>
-            <div className="text-2xl font-black text-yellow-500 mt-1">{profiles.filter(p => !p.is_approved).length}</div>
-          </button>
-        </div>
-
-        {/* Filter Tabs */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={() => setUserTabFilter('all')}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-              userTabFilter === 'all' ? "bg-pitch text-black font-black" : "bg-white/5 text-white/60 hover:text-white"
-            )}
-          >
-            All ({profiles.length})
-          </button>
-          <button
-            onClick={() => setUserTabFilter('no_tokens')}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5",
-              userTabFilter === 'no_tokens' 
-                ? "bg-red-500 text-white shadow-lg shadow-red-500/30" 
-                : "bg-red-500/15 text-red-400 border border-red-500/30 hover:bg-red-500/25"
-            )}
-          >
-            <Ticket size={13} />
-            0 Tokens / Needs Cash ({profiles.filter(p => p.is_approved && (p.game_tokens ?? 0) <= 0).length})
-          </button>
-          <button
-            onClick={() => setUserTabFilter('one_token')}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1.5",
-              userTabFilter === 'one_token' 
-                ? "bg-amber-500 text-black shadow-lg shadow-amber-500/30 font-black" 
-                : "bg-amber-500/15 text-amber-300 border border-amber-500/30 hover:bg-amber-500/25"
-            )}
-          >
-            <AlertCircle size={13} />
-            ⚠️ 1 Game Left / Paying Soon ({profiles.filter(p => p.is_approved && (p.game_tokens ?? 0) === 1).length})
-          </button>
-          <button
-            onClick={() => setUserTabFilter('pending')}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-              userTabFilter === 'pending' ? "bg-yellow-500 text-black font-black" : "bg-white/5 text-white/60 hover:text-white"
-            )}
-          >
-            Pending ({profiles.filter(p => !p.is_approved).length})
-          </button>
-          <button
-            onClick={() => setUserTabFilter('active')}
-            className={cn(
-              "px-3 py-1.5 rounded-lg text-xs font-bold transition-all",
-              userTabFilter === 'active' ? "bg-pitch text-black font-black" : "bg-white/5 text-white/60 hover:text-white"
-            )}
-          >
-            Active ({profiles.filter(p => p.is_approved).length})
-          </button>
-        </div>
-
-        {/* Payment Status Legend */}
-        <div className="flex flex-wrap items-center justify-between gap-3 text-xs bg-white/5 border border-white/10 rounded-xl px-4 py-2.5">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
-            <span className="text-white/40 font-black uppercase tracking-wider text-[10px]">Payment Flags:</span>
-            <div className="flex flex-wrap items-center gap-3">
-              <span className="inline-flex items-center gap-1.5 text-xs text-[#00ff66] font-bold">
-                <span className="h-2 w-2 rounded-full bg-[#00ff66] shadow-[0_0_6px_rgba(0,255,102,0.8)]"></span>
-                Active / Paid (2+ games)
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-xs text-amber-300 font-bold">
-                <span className="h-2 w-2 rounded-full bg-amber-400 shadow-[0_0_6px_rgba(245,158,11,0.8)] animate-pulse"></span>
-                Low Credits (1 game)
-              </span>
-              <span className="inline-flex items-center gap-1.5 text-xs text-red-400 font-bold">
-                <span className="h-2 w-2 rounded-full bg-red-500 shadow-[0_0_6px_rgba(239,68,68,0.8)] animate-pulse"></span>
-                Needs Payment (0 games)
-              </span>
+        {/* Quick link card to Players Management */}
+        <div className="bg-[#141721] p-6 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
+          <div className="flex items-center gap-3">
+            <span className="w-10 h-10 rounded-full bg-[#0055FF] text-white flex items-center justify-center font-black shrink-0">
+              <Users size={20} />
+            </span>
+            <div>
+              <div className="text-white font-black text-base uppercase tracking-tight">Players & Game Tokens Management</div>
+              <div className="text-white/40 text-xs mt-0.5 font-medium">Manage member approvals, PayID / Cash payments, and prepaid 20-game packs in the dedicated Players Management tab.</div>
             </div>
           </div>
-          <span className="text-[10px] text-white/30 hidden md:inline">Quick visual flags for cash collection</span>
+          <button
+            onClick={() => { setAdminTab('players'); onTabChange?.('players'); }}
+            className="bg-[#0055FF] hover:bg-[#0047E0] text-white px-5 py-2.5 rounded-full font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 cursor-pointer shadow-lg shadow-[#0055FF]/25"
+          >
+            <Users size={14} />
+            Open Players Management
+          </button>
         </div>
+
         
-        <div className="glass-card overflow-hidden">
-          {/* Desktop Table */}
-          <table className="hidden md:table w-full text-left border-collapse">
-            <thead className="bg-white/5 text-white/40 text-[10px] uppercase font-black tracking-widest">
-              <tr>
-                <th className="p-6">Player & Payment Status</th>
-                <th className="p-6">Status</th>
-                <th className="p-6">Game Tokens (Available)</th>
-                <th className="p-6 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {profiles
-                .filter(p => {
-                  const matchesSearch = p.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                        (p.phone_number && p.phone_number.includes(searchTerm));
-                  if (!matchesSearch) return false;
-                  if (userTabFilter === 'pending') return !p.is_approved;
-                  if (userTabFilter === 'no_tokens') return p.is_approved && (p.game_tokens ?? 0) <= 0;
-                  if (userTabFilter === 'one_token') return p.is_approved && (p.game_tokens ?? 0) === 1;
-                  if (userTabFilter === 'active') return p.is_approved;
-                  return true;
-                })
-                .map(profile => (
-                <tr key={profile.id} className={cn(
-                  "hover:bg-white/5 transition-colors",
-                  !profile.is_approved && "bg-yellow-500/5",
-                  profile.is_approved && (profile.game_tokens ?? 0) <= 0 && "bg-red-500/5",
-                  profile.is_approved && (profile.game_tokens ?? 0) === 1 && "bg-amber-500/5"
-                )}>
-                  <td className="p-6">
-                    <div className="font-bold flex items-center flex-wrap gap-2">
-                      <span className="text-white font-black">{profile.full_name}</span>
-                      {renderPaymentStatusFlag(profile)}
-                      {profile.is_admin && (
-                        <span className="text-[9px] bg-pitch/20 text-pitch border border-pitch/30 px-1.5 py-0.5 rounded font-black tracking-wider uppercase">
-                          Admin
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-white/30 uppercase tracking-widest mt-0.5">{profile.phone_number || 'No Phone'}</div>
-                  </td>
-                  <td className="p-6">
-                    {!profile.is_approved ? (
-                      <span className="text-[10px] bg-yellow-500 text-black px-2.5 py-1 rounded-full font-black uppercase tracking-wider">
-                        Pending Approval
-                      </span>
-                    ) : (
-                      <span className="text-[10px] bg-pitch/20 text-pitch px-2.5 py-1 rounded-full font-black uppercase tracking-wider">
-                        Active
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-6">
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        {(profile.game_tokens ?? 0) <= 0 ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black uppercase bg-red-500/20 text-red-400 border border-red-500/40">
-                            <Ticket size={12} />
-                            0 Games (Needs Cash)
-                          </span>
-                        ) : (profile.game_tokens ?? 0) === 1 ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-pulse">
-                            <AlertCircle size={12} />
-                            1 Game (LAST GAME - Pay Soon)
-                          </span>
-                        ) : (profile.game_tokens ?? 0) <= 3 ? (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black uppercase bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                            <Ticket size={12} />
-                            {profile.game_tokens} Games (Low)
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-black uppercase bg-[#00ff66]/15 text-[#00ff66] border border-[#00ff66]/30">
-                            <Ticket size={12} />
-                            {profile.game_tokens} Games
-                          </span>
-                        )}
 
-                        <button
-                          onClick={() => setTokenEditModal({ id: profile.id, name: profile.full_name, tokens: profile.game_tokens ?? 0 })}
-                          title="Edit token count directly"
-                          className="p-1 text-white/40 hover:text-pitch transition-colors"
-                        >
-                          <Edit3 size={13} />
-                        </button>
-                      </div>
 
-                      <div className="flex items-center gap-1.5">
-                        <button
-                          onClick={() => addCashTokens(profile, 20)}
-                          disabled={updatingTokenId === profile.id}
-                          className="bg-[#00ff66]/20 hover:bg-[#00ff66]/30 text-[#00ff66] border border-[#00ff66]/30 px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1 disabled:opacity-50"
-                          title="Cash received: Credit 20 games"
-                        >
-                          <Banknote size={11} />
-                          +20 Cash
-                        </button>
-
-                        <button
-                          onClick={() => updateTokens(profile.id, (profile.game_tokens ?? 0) + 1)}
-                          disabled={updatingTokenId === profile.id}
-                          className="bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 px-2 py-1 rounded-lg text-[10px] font-black transition-all disabled:opacity-50"
-                          title="Add 1 game"
-                        >
-                          +1
-                        </button>
-
-                        <button
-                          onClick={() => updateTokens(profile.id, Math.max(0, (profile.game_tokens ?? 0) - 1))}
-                          disabled={updatingTokenId === profile.id || (profile.game_tokens ?? 0) <= 0}
-                          className="bg-white/5 hover:bg-white/10 text-white/80 border border-white/10 px-2 py-1 rounded-lg text-[10px] font-black transition-all disabled:opacity-30"
-                          title="Deduct 1 game"
-                        >
-                          -1
-                        </button>
-                      </div>
-                    </div>
-                  </td>
-                  <td className="p-6 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      {!profile.is_approved ? (
-                        <div className="flex items-center gap-2">
-                          <button 
-                            onClick={() => approveUser(profile.id, 20)}
-                            disabled={approvingId === profile.id}
-                            className="bg-pitch text-black px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-pitch-dark transition-all flex items-center gap-1.5 disabled:opacity-50"
-                            title="Approve and credit 20 games (Cash received)"
-                          >
-                            {approvingId === profile.id ? (
-                              <Loader2 className="animate-spin" size={13} />
-                            ) : (
-                              <Check size={13} />
-                            )}
-                            Approve + 20 Games
-                          </button>
-                          <button 
-                            onClick={() => approveUser(profile.id, 0)}
-                            disabled={approvingId === profile.id}
-                            className="bg-white/10 text-white px-3 py-2 rounded-xl text-xs font-bold hover:bg-white/20 transition-all flex items-center gap-1 disabled:opacity-50"
-                            title="Approve user with 0 games (must pay before playing)"
-                          >
-                            Approve (0)
-                          </button>
-                        </div>
-                      ) : (
-                        <>
-                          {togglingAdminId === profile.id ? (
-                            <div className="flex items-center gap-2 bg-yellow-500/10 p-2 rounded-xl border border-yellow-500/20">
-                              <span className="text-[10px] font-bold text-yellow-500 uppercase">Confirm Access Change?</span>
-                              <button 
-                                onClick={() => toggleAdmin(profile.id, profile.is_admin)}
-                                className="bg-pitch text-black px-3 py-1 rounded-lg text-[10px] font-bold hover:bg-pitch-dark transition-all"
-                              >
-                                Yes
-                              </button>
-                              <button 
-                                onClick={() => setTogglingAdminId(null)}
-                                className="bg-white/10 text-white px-3 py-1 rounded-lg text-[10px] font-bold hover:bg-white/20 transition-all"
-                              >
-                                No
-                              </button>
-                            </div>
-                          ) : deletingProfileId === profile.id ? (
-                            <div className="flex items-center gap-2 bg-red-500/10 p-2 rounded-xl border border-red-500/20">
-                              <span className="text-[10px] font-bold text-red-500 uppercase">Revoke Access?</span>
-                              <button 
-                                onClick={() => revokeAccess(profile.id)}
-                                className="bg-red-500 text-white px-3 py-1 rounded-lg text-[10px] font-bold hover:bg-red-600 transition-all"
-                              >
-                                Yes
-                              </button>
-                              <button 
-                                onClick={() => setDeletingProfileId(null)}
-                                className="bg-white/10 text-white px-3 py-1 rounded-lg text-[10px] font-bold hover:bg-white/20 transition-all"
-                              >
-                                No
-                              </button>
-                            </div>
-                          ) : (
-                            <>
-                              <button
-                                onClick={() => setTogglingAdminId(profile.id)}
-                                className={cn(
-                                  "px-4 py-2 rounded-xl transition-all text-xs font-bold flex items-center gap-2",
-                                  profile.is_admin 
-                                    ? "bg-pitch/10 text-pitch border border-pitch/20" 
-                                    : "bg-white/5 text-white/40 hover:text-white border border-white/10"
-                                )}
-                              >
-                                <Shield size={14} />
-                                {profile.is_admin ? 'Admin' : 'Make Admin'}
-                              </button>
-                              <button 
-                                onClick={() => setDeletingProfileId(profile.id)}
-                                className="p-2 text-white/20 hover:text-red-500 transition-colors"
-                                title="Revoke Access"
-                              >
-                                <X size={18} />
-                              </button>
-                            </>
-                          )}
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-
-          {/* Mobile List */}
-          <div className="md:hidden divide-y divide-white/5">
-            {profiles
-              .filter(p => {
-                const matchesSearch = p.full_name.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                                      (p.phone_number && p.phone_number.includes(searchTerm));
-                if (!matchesSearch) return false;
-                if (userTabFilter === 'pending') return !p.is_approved;
-                if (userTabFilter === 'no_tokens') return p.is_approved && (p.game_tokens ?? 0) <= 0;
-                if (userTabFilter === 'one_token') return p.is_approved && (p.game_tokens ?? 0) === 1;
-                if (userTabFilter === 'active') return p.is_approved;
-                return true;
-              })
-              .map(profile => (
-                <div key={profile.id} className={cn(
-                  "p-5 space-y-4",
-                  !profile.is_approved && "bg-yellow-500/5",
-                  profile.is_approved && (profile.game_tokens ?? 0) <= 0 && "bg-red-500/5",
-                  profile.is_approved && (profile.game_tokens ?? 0) === 1 && "bg-amber-500/5"
-                )}>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <div className="font-bold text-lg tracking-tight flex items-center flex-wrap gap-2">
-                        <span>{profile.full_name}</span>
-                        {renderPaymentStatusFlag(profile)}
-                        {profile.is_admin && (
-                          <span className="text-[9px] bg-pitch/20 text-pitch border border-pitch/30 px-1.5 py-0.5 rounded font-black tracking-wider uppercase">
-                            Admin
-                          </span>
-                        )}
-                      </div>
-                      <div className="text-[10px] text-white/30 uppercase tracking-widest mt-0.5">{profile.phone_number || 'No Phone'}</div>
-                    </div>
-                    {!profile.is_approved ? (
-                      <span className="text-[10px] bg-yellow-500 text-black px-2 py-1 rounded font-black uppercase">Pending</span>
-                    ) : (
-                      <span className="text-[10px] bg-pitch/20 text-pitch px-2 py-1 rounded font-black uppercase">Active</span>
-                    )}
-                  </div>
-
-                  {/* Tokens Bar Mobile */}
-                  <div className="bg-black/30 p-3 rounded-xl border border-white/5 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <span className="text-[10px] font-black uppercase tracking-wider text-white/40">Tokens Available:</span>
-                      <div className="flex items-center gap-2">
-                        {(profile.game_tokens ?? 0) <= 0 ? (
-                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-red-500/20 text-red-400 border border-red-500/40">
-                            0 Games (Needs Cash)
-                          </span>
-                        ) : (profile.game_tokens ?? 0) === 1 ? (
-                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/50 animate-pulse flex items-center gap-1">
-                            <AlertCircle size={10} /> 1 Game (Last Game!)
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-[#00ff66]/15 text-[#00ff66] border border-[#00ff66]/30">
-                            {profile.game_tokens} Games
-                          </span>
-                        )}
-                        <button
-                          onClick={() => setTokenEditModal({ id: profile.id, name: profile.full_name, tokens: profile.game_tokens ?? 0 })}
-                          className="p-1 text-white/40 hover:text-pitch"
-                        >
-                          <Edit3 size={13} />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 pt-1">
-                      <button
-                        onClick={() => addCashTokens(profile, 20)}
-                        disabled={updatingTokenId === profile.id}
-                        className="flex-1 bg-[#00ff66]/20 hover:bg-[#00ff66]/30 text-[#00ff66] border border-[#00ff66]/30 py-2 rounded-lg text-xs font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 disabled:opacity-50"
-                      >
-                        <Banknote size={13} />
-                        +20 Cash Paid 💵
-                      </button>
-                      <button
-                        onClick={() => updateTokens(profile.id, (profile.game_tokens ?? 0) + 1)}
-                        disabled={updatingTokenId === profile.id}
-                        className="bg-white/5 hover:bg-white/10 text-white border border-white/10 px-3 py-2 rounded-lg text-xs font-bold"
-                      >
-                        +1
-                      </button>
-                      <button
-                        onClick={() => updateTokens(profile.id, Math.max(0, (profile.game_tokens ?? 0) - 1))}
-                        disabled={updatingTokenId === profile.id || (profile.game_tokens ?? 0) <= 0}
-                        className="bg-white/5 hover:bg-white/10 text-white border border-white/10 px-3 py-2 rounded-lg text-xs font-bold disabled:opacity-30"
-                      >
-                        -1
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div className="flex flex-wrap items-center gap-2 pt-1">
-                    {!profile.is_approved ? (
-                      <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-2">
-                        <button 
-                          onClick={() => approveUser(profile.id, 20)}
-                          disabled={approvingId === profile.id}
-                          className="bg-pitch text-black px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider hover:bg-pitch-dark transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                        >
-                          {approvingId === profile.id ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} />}
-                          Approve + 20 Games
-                        </button>
-                        <button 
-                          onClick={() => approveUser(profile.id, 0)}
-                          disabled={approvingId === profile.id}
-                          className="bg-white/10 text-white px-4 py-2.5 rounded-xl text-xs font-bold hover:bg-white/20 transition-all flex items-center justify-center gap-1 disabled:opacity-50"
-                        >
-                          Approve (0 Games)
-                        </button>
-                      </div>
-                    ) : (
-                      <div className="w-full space-y-2">
-                        {togglingAdminId === profile.id ? (
-                          <div className="flex flex-col gap-2 bg-yellow-500/10 p-4 rounded-xl border border-yellow-500/20">
-                            <span className="text-[10px] font-bold text-yellow-500 uppercase text-center">Confirm Access Change?</span>
-                            <div className="flex gap-2">
-                              <button 
-                                onClick={() => toggleAdmin(profile.id, profile.is_admin)}
-                                className="flex-1 bg-pitch text-black px-3 py-2 rounded-lg text-xs font-bold"
-                              >
-                                Yes
-                              </button>
-                              <button 
-                                onClick={() => setTogglingAdminId(null)}
-                                className="flex-1 bg-white/10 text-white px-3 py-2 rounded-lg text-xs font-bold"
-                              >
-                                No
-                              </button>
-                            </div>
-                          </div>
-                        ) : deletingProfileId === profile.id ? (
-                          <div className="flex flex-col gap-2 bg-red-500/10 p-4 rounded-xl border border-red-500/20">
-                            <span className="text-[10px] font-bold text-red-500 uppercase text-center">Revoke Access?</span>
-                            <div className="flex gap-2">
-                              <button 
-                                onClick={() => revokeAccess(profile.id)}
-                                className="flex-1 bg-red-500 text-white px-3 py-2 rounded-lg text-xs font-bold"
-                              >
-                                Yes
-                              </button>
-                              <button 
-                                onClick={() => setDeletingProfileId(null)}
-                                className="flex-1 bg-white/10 text-white px-3 py-2 rounded-lg text-xs font-bold"
-                              >
-                                No
-                              </button>
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setTogglingAdminId(profile.id)}
-                              className={cn(
-                                "flex-1 px-4 py-3 rounded-xl transition-all text-[10px] font-black uppercase tracking-widest flex items-center justify-center gap-2",
-                                profile.is_admin 
-                                  ? "bg-pitch/10 text-pitch border border-pitch/20" 
-                                  : "bg-white/5 text-white/40 border border-white/10"
-                              )}
-                            >
-                              <Shield size={14} />
-                              {profile.is_admin ? 'Admin' : 'Make Admin'}
-                            </button>
-                            <button 
-                              onClick={() => setDeletingProfileId(profile.id)}
-                              className="bg-white/5 text-white/20 px-4 py-3 rounded-xl border border-white/10"
-                            >
-                              <X size={18} />
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              ))}
-          </div>
-        </div>
-      </section>
-
-      {/* Token Edit Modal */}
-      <AnimatePresence>
-        {tokenEditModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm">
-            <motion.div 
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="glass-card max-w-md w-full p-6 space-y-6 border border-white/20 shadow-2xl"
-            >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2 font-black text-xl text-white">
-                  <Ticket className="text-pitch" size={22} />
-                  <span>MANAGE GAME TOKENS</span>
-                </div>
-                <button 
-                  onClick={() => setTokenEditModal(null)}
-                  className="text-white/40 hover:text-white transition-colors"
-                >
-                  <X size={20} />
-                </button>
-              </div>
-
-              <div className="bg-white/5 p-4 rounded-xl border border-white/10 space-y-1">
-                <div className="text-xs text-white/50 uppercase font-black tracking-wider">Player</div>
-                <div className="text-lg font-bold text-white">{tokenEditModal.name}</div>
-                <div className="text-xs text-pitch font-semibold mt-1">
-                  Cash payment for lighting costs (Standard block: 20 games)
-                </div>
-              </div>
-
-              <div className="space-y-3">
-                <label className="text-xs uppercase font-black tracking-wider text-white/70">
-                  Games Available:
-                </label>
-                <div className="flex items-center gap-3">
-                  <input
-                    type="number"
-                    min="0"
-                    max="500"
-                    value={tokenEditModal.tokens}
-                    onChange={e => setTokenEditModal(prev => prev ? { ...prev, tokens: Math.max(0, parseInt(e.target.value) || 0) } : null)}
-                    className="flex-1 bg-black/50 border border-white/20 rounded-xl px-4 py-3 text-2xl font-mono font-black text-white focus:border-pitch outline-none"
-                  />
-                  <div className="text-sm font-bold text-white/40 uppercase">Games</div>
-                </div>
-              </div>
-
-              {/* Quick Presets */}
-              <div className="space-y-2">
-                <div className="text-[10px] uppercase font-bold text-white/40 tracking-wider">Quick Presets:</div>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: (prev.tokens || 0) + 20 } : null)}
-                    className="bg-[#00ff66]/10 hover:bg-[#00ff66]/20 text-[#00ff66] border border-[#00ff66]/30 py-2 rounded-lg text-xs font-black transition-all"
-                  >
-                    +20 Games 💵
-                  </button>
-                  <button
-                    onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: (prev.tokens || 0) + 10 } : null)}
-                    className="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-2 rounded-lg text-xs font-bold transition-all"
-                  >
-                    +10 Games
-                  </button>
-                  <button
-                    onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: 20 } : null)}
-                    className="bg-pitch/10 hover:bg-pitch/20 text-pitch border border-pitch/30 py-2 rounded-lg text-xs font-black transition-all"
-                  >
-                    Set to 20
-                  </button>
-                  <button
-                    onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: 10 } : null)}
-                    className="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-2 rounded-lg text-xs font-bold transition-all"
-                  >
-                    Set to 10
-                  </button>
-                  <button
-                    onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: 5 } : null)}
-                    className="bg-white/5 hover:bg-white/10 text-white border border-white/10 py-2 rounded-lg text-xs font-bold transition-all"
-                  >
-                    Set to 5
-                  </button>
-                  <button
-                    onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: 0 } : null)}
-                    className="bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/30 py-2 rounded-lg text-xs font-bold transition-all"
-                  >
-                    Reset (0)
-                  </button>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  onClick={() => setTokenEditModal(null)}
-                  className="flex-1 bg-white/10 hover:bg-white/20 text-white py-3 rounded-xl font-bold text-sm transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => updateTokens(tokenEditModal.id, tokenEditModal.tokens)}
-                  disabled={updatingTokenId === tokenEditModal.id}
-                  className="flex-1 bg-pitch hover:bg-pitch-dark text-black py-3 rounded-xl font-black text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                >
-                  {updatingTokenId === tokenEditModal.id ? (
-                    <Loader2 className="animate-spin" size={16} />
-                  ) : (
-                    <Check size={16} />
-                  )}
-                  Save Tokens
-                </button>
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+      </>
+    )}
     </div>
   );
 }
