@@ -4,6 +4,7 @@ export interface Profile {
   phone_number?: string;
   is_admin: boolean;
   is_approved: boolean;
+  game_tokens?: number;
   created_at: string;
 }
 

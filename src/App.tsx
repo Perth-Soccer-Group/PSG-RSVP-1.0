@@ -8,7 +8,7 @@ import HistoryView from './components/HistoryView';
 import AdminView from './components/AdminView';
 import PublicGameView from './components/PublicGameView';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, History, ShieldAlert, LogOut, Menu, X, AlertTriangle, ExternalLink, RefreshCw, Share2 } from 'lucide-react';
+import { Trophy, History, ShieldAlert, LogOut, Menu, X, AlertTriangle, ExternalLink, RefreshCw, Share2, Ticket } from 'lucide-react';
 import { cn, formatTime } from './lib/utils';
 
 export default function App() {
@@ -61,6 +61,32 @@ export default function App() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Realtime subscription to own profile changes (e.g. admin updates game tokens)
+  useEffect(() => {
+    if (!session?.user?.id) return;
+    const profileChannel = supabase
+      .channel(`profile-realtime-${session.user.id}`)
+      .on('postgres_changes' as any, {
+        event: 'UPDATE',
+        schema: 'public',
+        table: 'profiles',
+        filter: `id=eq.${session.user.id}`
+      }, (payload: any) => {
+        if (payload.new) {
+          setProfile(prev => prev ? ({
+            ...prev,
+            ...payload.new,
+            game_tokens: payload.new.game_tokens ?? prev.game_tokens ?? 0
+          }) : payload.new);
+        }
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profileChannel);
+    };
+  }, [session?.user?.id]);
 
   const fetchProfile = async (userId: string, userEmail?: string) => {
     try {
@@ -132,7 +158,8 @@ export default function App() {
           setProfile({
             ...newProfile,
             is_approved: newProfile.is_approved ?? true,
-            is_admin: isCharley ? true : !!newProfile.is_admin
+            is_admin: isCharley ? true : !!newProfile.is_admin,
+            game_tokens: newProfile.game_tokens ?? (isCharley ? 99 : 0)
           });
         } else {
           // Fallback if RLS or insert completely failed but we want them to log in
@@ -141,6 +168,7 @@ export default function App() {
             full_name: email ? email.split('@')[0] : 'New Player',
             is_admin: isCharley ? true : false,
             is_approved: isCharley ? true : false,
+            game_tokens: isCharley ? 99 : 0,
             created_at: new Date().toISOString()
           });
         }
@@ -153,6 +181,7 @@ export default function App() {
           full_name: email ? email.split('@')[0] : 'Player',
           is_admin: isCharley ? true : false,
           is_approved: isCharley ? true : false,
+          game_tokens: isCharley ? 99 : 0,
           created_at: new Date().toISOString()
         });
       } else if (data) {
@@ -202,13 +231,15 @@ export default function App() {
           setProfile({
             ...(updatedProfile || data),
             is_admin: true,
-            is_approved: true
+            is_approved: true,
+            game_tokens: (updatedProfile || data).game_tokens ?? 99
           });
         } else {
           setProfile({
             ...data,
             is_approved: data.is_approved ?? true,
-            is_admin: isCharley ? true : !!data.is_admin
+            is_admin: isCharley ? true : !!data.is_admin,
+            game_tokens: data.game_tokens ?? (isCharley ? 99 : 0)
           });
         }
       }
@@ -361,6 +392,39 @@ export default function App() {
               >
                 <Share2 size={18} />
               </button>
+            )}
+            {profile && (
+              <div 
+                className={cn(
+                  "flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider border transition-all cursor-default",
+                  (profile.game_tokens ?? 0) === 1
+                    ? "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-[0_0_15px_rgba(245,158,11,0.3)] animate-pulse"
+                    : (profile.game_tokens ?? 0) > 0 
+                      ? "bg-[#00ff66]/10 text-[#00ff66] border-[#00ff66]/30 shadow-[0_0_12px_rgba(0,255,102,0.15)]" 
+                      : "bg-red-500/10 text-red-400 border-red-500/30 shadow-[0_0_12px_rgba(239,68,68,0.15)]"
+                )}
+                title={
+                  (profile.game_tokens ?? 0) === 1
+                    ? "⚠️ ATTENTION: Only 1 game available! This is your final game. Remember to pay cash to the admin (for pitch lights) to get 20 more games credited."
+                    : `Available games: ${profile.game_tokens ?? 0}. Cash paid in hand for pitch lights.`
+                }
+              >
+                <Ticket 
+                  size={13} 
+                  className={
+                    (profile.game_tokens ?? 0) === 1 
+                      ? "text-amber-400" 
+                      : (profile.game_tokens ?? 0) > 0 
+                        ? "text-[#00ff66]" 
+                        : "text-red-400"
+                  } 
+                />
+                <span>
+                  {(profile.game_tokens ?? 0) === 1 
+                    ? "1 Game Left! ⚠️" 
+                    : `${profile.game_tokens ?? 0} Games`}
+                </span>
+              </div>
             )}
             <button 
               onClick={handleRefresh}

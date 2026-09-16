@@ -30,6 +30,7 @@ CREATE TABLE public.profiles (
   phone_number TEXT,
   is_admin BOOLEAN DEFAULT FALSE,
   is_approved BOOLEAN DEFAULT TRUE,
+  game_tokens INTEGER DEFAULT 0 NOT NULL,
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
 );
 
@@ -234,3 +235,10 @@ SET is_admin = true, is_approved = true
 WHERE id IN (
   SELECT id FROM auth.users WHERE email = 'charley.moraes@gmail.com'
 );
+
+-- ================================================================
+-- PHASE 7: GAME TOKENS MIGRATION (RUN THIS IF PROFILES TABLE ALREADY EXISTS)
+-- ================================================================
+-- If your database is already up and running, just run this 1 line to add the game_tokens column:
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS game_tokens INTEGER NOT NULL DEFAULT 0;
+

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import { Game, RSVP, Profile, Vote as VoteType, MSPVote } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Users, MapPin, Clock, Trophy, Shuffle, CheckCircle2, AlertCircle, ShieldAlert, Loader2, Vote as VoteIcon, Check, RotateCw, X, Frown } from 'lucide-react';
+import { Users, MapPin, Clock, Trophy, Shuffle, CheckCircle2, AlertCircle, ShieldAlert, Loader2, Vote as VoteIcon, Check, RotateCw, X, Frown, Ticket } from 'lucide-react';
 import { cn, formatDate, formatTime, formatRsvpTime } from '../lib/utils';
 import athleteRunningImg from '../assets/images/ronaldo_2002_running_1781141795225.png';
 import athleteSittingImg from '../assets/images/athlete_sitting_1781141114349.png';
@@ -178,6 +178,13 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
           return;
         }
 
+        // Token check: Non-admins must have at least 1 game token
+        const currentTokens = profile.game_tokens ?? 0;
+        if (!profile.is_admin && currentTokens <= 0) {
+          setError("You don't have game tokens remaining (0 available). Please talk to the Admin to pay cash (for pitch lights) and get 20 more games credited!");
+          return;
+        }
+
         const confirmedCount = latestRSVPs.filter(r => r.status === 'confirmed').length;
         const newStatus = confirmedCount < 22 ? 'confirmed' : 'waiting';
 
@@ -195,7 +202,28 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
           });
           if (insertError) throw insertError;
         }
-        setSuccess(newStatus === 'confirmed' ? "You're on it!" : 'Added to waiting list.');
+
+        // If player is directly confirmed into the squad, deduct 1 game token
+        if (newStatus === 'confirmed' && !profile.is_admin && currentTokens > 0) {
+          try {
+            await supabase
+              .from('profiles')
+              .update({ game_tokens: Math.max(0, currentTokens - 1) })
+              .eq('id', user.id);
+          } catch (tokErr) {
+            console.warn('Could not update game token balance:', tokErr);
+          }
+        }
+
+        if (newStatus === 'confirmed') {
+          if (currentTokens === 1 && !profile.is_admin) {
+            setSuccess("You're on it! ⚠️ That was your LAST game token — please remember to pay cash to the admin for your next 20 games!");
+          } else {
+            setSuccess("You're on it! 1 game token used.");
+          }
+        } else {
+          setSuccess('Added to waiting list.');
+        }
       } else {
         // Handle "I'M OUT"
         if (existingRSVP && existingRSVP.status === 'declined') {
@@ -227,11 +255,31 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
           setSuccess('Successfully recorded: OUT.');
         }
 
+        // Refund token if a confirmed player cancels
+        if (wasConfirmed && !profile.is_admin) {
+          try {
+            const { data: freshP } = await supabase.from('profiles').select('game_tokens').eq('id', user.id).single();
+            const curr = freshP?.game_tokens ?? profile.game_tokens ?? 0;
+            await supabase.from('profiles').update({ game_tokens: curr + 1 }).eq('id', user.id);
+          } catch (refundErr) {
+            console.warn('Could not refund game token:', refundErr);
+          }
+        }
+
         // Manual Promotion: If a confirmed player withdraws, promote the first waiting player
         if (wasConfirmed && nextGame.status === 'open') {
           const firstWaiting = latestRSVPs.find(r => r.status === 'waiting');
           if (firstWaiting) {
             await supabase.from('rsvps').update({ status: 'confirmed' }).eq('id', firstWaiting.id);
+            // Deduct token from promoted player
+            try {
+              const { data: promotedP } = await supabase.from('profiles').select('game_tokens, is_admin').eq('id', firstWaiting.user_id).single();
+              if (promotedP && !promotedP.is_admin && promotedP.game_tokens && promotedP.game_tokens > 0) {
+                await supabase.from('profiles').update({ game_tokens: promotedP.game_tokens - 1 }).eq('id', firstWaiting.user_id);
+              }
+            } catch (promoErr) {
+              console.warn('Could not deduct token for promoted player:', promoErr);
+            }
           }
         }
       }
@@ -591,6 +639,90 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
             </div>
           </div>
 
+          {/* Game Tokens Status Banner / Warning */}
+          {(() => {
+            const userTokens = profile?.game_tokens ?? 0;
+            const isOutOfTokens = !profile?.is_admin && userTokens <= 0;
+            const isOneTokenLeft = !profile?.is_admin && userTokens === 1;
+
+            if (isOutOfTokens && !isIn) {
+              return (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="w-full max-w-lg p-5 rounded-3xl bg-red-500/10 border border-red-500/30 text-center space-y-2.5 backdrop-blur-md shadow-[0_0_30px_rgba(239,68,68,0.15)]"
+                >
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 text-red-400 text-xs font-black uppercase tracking-wider border border-red-500/30">
+                    <AlertCircle size={14} /> 0 Games Available
+                  </div>
+                  <h4 className="text-lg font-black tracking-tight text-white uppercase">
+                    Talk to the Admin to RSVP
+                  </h4>
+                  <p className="text-xs text-white/70 leading-relaxed max-w-sm mx-auto">
+                    You have run out of game tokens. Payment is collected in cash (cash in hand for pitch lights). Talk to the admin to pay and get 20 more games credited.
+                  </p>
+                  <div className="pt-1">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-black text-red-300 bg-red-500/20 px-4 py-2 rounded-full border border-red-500/30 tracking-wide">
+                      💬 Talk to the admin to solve
+                    </span>
+                  </div>
+                </motion.div>
+              );
+            }
+
+            if (isOneTokenLeft && !isIn) {
+              return (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="w-full max-w-lg p-5 rounded-3xl bg-amber-500/15 border border-amber-500/40 text-center space-y-2 backdrop-blur-md shadow-[0_0_25px_rgba(245,158,11,0.2)]"
+                >
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/25 text-amber-300 text-xs font-black uppercase tracking-wider border border-amber-500/40 animate-pulse">
+                    <AlertCircle size={14} /> ⚠️ Only 1 Game Token Available!
+                  </div>
+                  <h4 className="text-lg font-black tracking-tight text-white uppercase">
+                    This is your LAST game before top-up
+                  </h4>
+                  <p className="text-xs text-amber-200/90 leading-relaxed max-w-sm mx-auto">
+                    You can join this match, but your token balance will reach <strong>0</strong>. Remember to bring cash to the pitch (for pitch lights) so the admin can credit your next 20 games!
+                  </p>
+                  <div className="pt-1">
+                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-500/20 px-3.5 py-1.5 rounded-full border border-amber-500/30">
+                      💵 Bring cash to admin at pitch
+                    </span>
+                  </div>
+                </motion.div>
+              );
+            }
+
+            if (isIn && userTokens === 0 && !profile?.is_admin) {
+              return (
+                <motion.div 
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="w-full max-w-lg p-4 rounded-3xl bg-amber-500/15 border border-amber-500/30 text-center space-y-1.5 backdrop-blur-md"
+                >
+                  <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/25 text-amber-300 text-xs font-black uppercase tracking-wider border border-amber-500/40">
+                    <Ticket size={13} /> You used your last game token for this match!
+                  </div>
+                  <p className="text-xs text-white/80 leading-relaxed max-w-sm mx-auto">
+                    You're locked into this game, but have 0 tokens left for future games. Please remember to pay the admin cash so they can credit your next 20 games!
+                  </p>
+                </motion.div>
+              );
+            }
+
+            return (
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs font-bold text-white/80">
+                <Ticket size={14} className="text-[#00ff66]" />
+                <span>
+                  You have <strong className="text-[#00ff66]">{profile?.is_admin ? `${userTokens} (Admin)` : userTokens}</strong> {userTokens === 1 ? 'game token' : 'game tokens'} available
+                </span>
+                <span className="text-white/30 hidden sm:inline">• Cash in hand for pitch lights</span>
+              </div>
+            );
+          })()}
+
           {showConfirmCancel ? (
             <div className="bg-highlight/10 border border-highlight/20 p-6 rounded-2xl w-full max-w-md space-y-4 animate-in fade-in-50 duration-200 text-center">
               <p className="text-white text-lg font-black uppercase tracking-tight">Are you sure you want to cancel your RSVP?</p>
@@ -617,103 +749,133 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
             </div>
           ) : (
             <div className="flex flex-col sm:flex-row items-center justify-center gap-6 w-full max-w-3xl px-4 py-2">
-              <motion.button
-                type="button"
-                onClick={() => handleRSVP(true)}
-                disabled={actionLoading || isClosed || isIn}
-                whileHover={isClosed ? {} : { scale: isOut ? 1 : 1.04, y: isOut ? 0 : -4 }}
-                whileTap={isClosed ? {} : { scale: isOut ? 1 : 0.98 }}
-                className={cn(
-                  "relative w-full sm:w-64 md:w-72 h-80 sm:h-96 rounded-[2.5rem] overflow-hidden group border-4 transition-all duration-500 flex flex-col justify-end text-left",
-                  isClosed
-                    ? (isIn 
-                        ? "border-white/20 shadow-none opacity-50 grayscale cursor-not-allowed" 
-                        : "border-transparent opacity-20 grayscale cursor-not-allowed")
-                    : (isIn 
-                        ? "border-[#00ff66] shadow-[0_0_35px_rgba(0,255,102,0.4)] opacity-100" 
-                        : isOut 
-                          ? "border-transparent opacity-25 grayscale cursor-not-allowed" 
-                          : "border-white/10 opacity-90 hover:opacity-100 hover:border-white/30 cursor-pointer")
-                )}
-              >
-                {/* Grayscale athlete background */}
-                <img
-                  src={athleteRunningImg}
-                  alt="I'm In"
-                  referrerPolicy="no-referrer"
-                  className={cn(
-                    "absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out",
-                    !isClosed && isIn ? "grayscale-0 scale-105" : "grayscale opacity-50"
-                  )}
-                />
+              {(() => {
+                const userTokens = profile?.game_tokens ?? 0;
+                const isOutOfTokens = !profile?.is_admin && userTokens <= 0;
+                const isOneTokenLeft = !profile?.is_admin && userTokens === 1;
 
-                {/* Intense Green Tint blend overlay */}
-                <div 
-                  className={cn(
-                    "absolute inset-0 transition-all duration-500",
-                    !isClosed && isIn 
-                      ? "bg-emerald-500/30 mix-blend-color opacity-100" 
-                      : !isClosed ? "bg-[#00ff66]/5 group-hover:bg-[#00ff66]/30 group-hover:mix-blend-color opacity-0 group-hover:opacity-100" : "opacity-0"
-                  )} 
-                />
-
-                {/* Ambient vignette background to make overlay text legible */}
-                <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent transition-opacity duration-300" />
-
-                {/* Badge indication */}
-                {isIn && (
-                  <div className={cn(
-                    "absolute top-5 right-5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
-                    isClosed
-                      ? "bg-white/10 text-white/50 border border-white/10 shadow-none"
-                      : "bg-[#00ff66] text-black shadow-[0_0_15px_rgba(0,255,102,0.4)]"
-                  )}>
-                    In Squad
-                  </div>
-                )}
-
-                {/* Text info and button indicator */}
-                <div className="relative p-6 z-10 w-full">
-                  <p className={cn(
-                    "text-[10px] font-black tracking-widest uppercase transition-colors duration-300",
-                    isIn ? "text-[#00ff66]" : "text-white/40 group-hover:text-white"
-                  )}>
-                    {(() => {
-                      if (!isIn) return "Ready to play?";
-                      const myRSVP = rsvps.find(r => r.user_id === user?.id);
-                      if (myRSVP?.status === 'confirmed') {
-                        const idx = confirmed.findIndex(r => r.user_id === user?.id);
-                        if (idx !== -1) {
-                          const getOrdinal = (n: number) => {
-                            const s = ["th", "st", "nd", "rd"];
-                            const v = n % 100;
-                            return n + (s[(v - 20) % 10] || s[v] || s[0]);
-                          };
-                          return `Confirmed RSVP • ${getOrdinal(idx + 1)} on the list`;
-                        }
-                      } else if (myRSVP?.status === 'waiting') {
-                        const idx = waiting.findIndex(r => r.user_id === user?.id);
-                        if (idx !== -1) {
-                          return `Waitlisted RSVP • Position #${idx + 1}`;
-                        }
-                      }
-                      return "Confirmed RSVP";
-                    })()}
-                  </p>
-                  <h3 className="text-3xl font-black italic tracking-tighter text-white uppercase mt-1 flex items-center gap-2">
-                    {actionLoading && isIn ? (
-                      <>
-                        <Loader2 className="animate-spin" size={24} />
-                        <span>Applying...</span>
-                      </>
-                    ) : isIn ? (
-                      "YOU'RE ON IT!"
-                    ) : (
-                      "I'M IN! ⚽"
+                return (
+                  <motion.button
+                    type="button"
+                    onClick={() => handleRSVP(true)}
+                    disabled={actionLoading || isClosed || isIn || isOutOfTokens}
+                    whileHover={isClosed || isOutOfTokens ? {} : { scale: isOut ? 1 : 1.04, y: isOut ? 0 : -4 }}
+                    whileTap={isClosed || isOutOfTokens ? {} : { scale: isOut ? 1 : 0.98 }}
+                    className={cn(
+                      "relative w-full sm:w-64 md:w-72 h-80 sm:h-96 rounded-[2.5rem] overflow-hidden group border-4 transition-all duration-500 flex flex-col justify-end text-left",
+                      isClosed
+                        ? (isIn 
+                            ? "border-white/20 shadow-none opacity-50 grayscale cursor-not-allowed" 
+                            : "border-transparent opacity-20 grayscale cursor-not-allowed")
+                        : isOutOfTokens && !isIn
+                          ? "border-red-500/30 opacity-60 grayscale cursor-not-allowed"
+                          : isOneTokenLeft && !isIn
+                            ? "border-amber-500/50 shadow-[0_0_25px_rgba(245,158,11,0.2)] opacity-95 hover:opacity-100 hover:border-amber-400 cursor-pointer"
+                            : (isIn 
+                                ? "border-[#00ff66] shadow-[0_0_35px_rgba(0,255,102,0.4)] opacity-100" 
+                                : isOut 
+                                  ? "border-transparent opacity-25 grayscale cursor-not-allowed" 
+                                  : "border-white/10 opacity-90 hover:opacity-100 hover:border-white/30 cursor-pointer")
                     )}
-                  </h3>
-                </div>
-              </motion.button>
+                  >
+                    {/* Grayscale athlete background */}
+                    <img
+                      src={athleteRunningImg}
+                      alt="I'm In"
+                      referrerPolicy="no-referrer"
+                      className={cn(
+                        "absolute inset-0 w-full h-full object-cover transition-all duration-700 ease-out",
+                        !isClosed && isIn ? "grayscale-0 scale-105" : "grayscale opacity-50"
+                      )}
+                    />
+
+                    {/* Intense Green Tint blend overlay */}
+                    <div 
+                      className={cn(
+                        "absolute inset-0 transition-all duration-500",
+                        !isClosed && isIn 
+                          ? "bg-emerald-500/30 mix-blend-color opacity-100" 
+                          : !isClosed && !isOutOfTokens ? "bg-[#00ff66]/5 group-hover:bg-[#00ff66]/30 group-hover:mix-blend-color opacity-0 group-hover:opacity-100" : "opacity-0"
+                      )} 
+                    />
+
+                    {/* Ambient vignette background to make overlay text legible */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/50 to-transparent transition-opacity duration-300" />
+
+                    {/* Badge indication */}
+                    {isIn && (
+                      <div className={cn(
+                        "absolute top-5 right-5 px-4 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest",
+                        isClosed
+                          ? "bg-white/10 text-white/50 border border-white/10 shadow-none"
+                          : "bg-[#00ff66] text-black shadow-[0_0_15px_rgba(0,255,102,0.4)]"
+                      )}>
+                        In Squad
+                      </div>
+                    )}
+                    {isOutOfTokens && !isIn && (
+                      <div className="absolute top-5 right-5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-red-500 text-white shadow-[0_0_15px_rgba(239,68,68,0.4)]">
+                        No Tokens
+                      </div>
+                    )}
+                    {isOneTokenLeft && !isIn && (
+                      <div className="absolute top-5 right-5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest bg-amber-500 text-black shadow-[0_0_15px_rgba(245,158,11,0.4)] animate-pulse">
+                        ⚠️ 1 Game Left
+                      </div>
+                    )}
+
+                    {/* Text info and button indicator */}
+                    <div className="relative p-6 z-10 w-full">
+                      <p className={cn(
+                        "text-[10px] font-black tracking-widest uppercase transition-colors duration-300",
+                        isOutOfTokens && !isIn 
+                          ? "text-red-400" 
+                          : isOneTokenLeft && !isIn
+                            ? "text-amber-300"
+                            : (isIn ? "text-[#00ff66]" : "text-white/40 group-hover:text-white")
+                      )}>
+                        {(() => {
+                          if (isOutOfTokens && !isIn) return "Talk to Admin to Top Up";
+                          if (isOneTokenLeft && !isIn) return "⚠️ Final Game Token • Pay Admin Next";
+                          if (!isIn) return "Ready to play?";
+                          const myRSVP = rsvps.find(r => r.user_id === user?.id);
+                          if (myRSVP?.status === 'confirmed') {
+                            const idx = confirmed.findIndex(r => r.user_id === user?.id);
+                            if (idx !== -1) {
+                              const getOrdinal = (n: number) => {
+                                const s = ["th", "st", "nd", "rd"];
+                                const v = n % 100;
+                                return n + (s[(v - 20) % 10] || s[v] || s[0]);
+                              };
+                              return `Confirmed RSVP • ${getOrdinal(idx + 1)} on the list`;
+                            }
+                          } else if (myRSVP?.status === 'waiting') {
+                            const idx = waiting.findIndex(r => r.user_id === user?.id);
+                            if (idx !== -1) {
+                              return `Waitlisted RSVP • Position #${idx + 1}`;
+                            }
+                          }
+                          return "Confirmed RSVP";
+                        })()}
+                      </p>
+                      <h3 className="text-3xl font-black italic tracking-tighter text-white uppercase mt-1 flex items-center gap-2">
+                        {actionLoading && isIn ? (
+                          <>
+                            <Loader2 className="animate-spin" size={24} />
+                            <span>Applying...</span>
+                          </>
+                        ) : isIn ? (
+                          "YOU'RE ON IT!"
+                        ) : isOutOfTokens ? (
+                          "TALK TO ADM 💬"
+                        ) : (
+                          "I'M IN! ⚽"
+                        )}
+                      </h3>
+                    </div>
+                  </motion.button>
+                );
+              })()}
 
               <motion.button
                 type="button"
@@ -846,7 +1008,25 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
               <div key={rsvp.id} className="glass-card p-4 flex items-center justify-between border-l-4 border-[#00ff66]">
                 <div className="flex items-center gap-4">
                   <span className="text-white/20 font-black italic w-6">{i + 1}</span>
-                  <span className="font-bold">{rsvp.profiles?.full_name || `Player (${rsvp.user_id.slice(0, 5)})`}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">{rsvp.profiles?.full_name || `Player (${rsvp.user_id.slice(0, 5)})`}</span>
+                    {profile?.is_admin && rsvp.profiles && (
+                      <span 
+                        title={(rsvp.profiles.game_tokens ?? 0) === 1 ? '⚠️ 1 Game Left! (Needs cash next match)' : (rsvp.profiles.game_tokens ?? 0) <= 0 ? '🚨 0 Games Available! (Needs Cash)' : `Game tokens remaining: ${rsvp.profiles.game_tokens}`}
+                        className={cn(
+                          "text-[9px] font-black uppercase px-2 py-0.5 rounded-full border tracking-wider flex items-center gap-1",
+                          (rsvp.profiles.game_tokens ?? 0) === 1
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
+                            : (rsvp.profiles.game_tokens ?? 0) > 0 
+                              ? "bg-[#00ff66]/10 text-[#00ff66] border-[#00ff66]/20" 
+                              : "bg-red-500/15 text-red-400 border-red-500/30"
+                        )}
+                      >
+                        <Ticket size={9} />
+                        {(rsvp.profiles.game_tokens ?? 0) === 1 ? '1 (Last)' : (rsvp.profiles.game_tokens ?? 0)}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {rsvp.created_at && (
                   <span className="text-[10px] font-mono text-white/40 tracking-wider font-semibold">
@@ -867,7 +1047,25 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
               <div key={rsvp.id} className="glass-card p-4 flex items-center justify-between opacity-60 border-l-4 border-yellow-500">
                 <div className="flex items-center gap-4">
                   <span className="text-white/20 font-black italic w-6">{i + 1}</span>
-                  <span className="font-bold">{rsvp.profiles?.full_name || `Player (${rsvp.user_id.slice(0, 5)})`}</span>
+                  <div className="flex items-center gap-2">
+                    <span className="font-bold">{rsvp.profiles?.full_name || `Player (${rsvp.user_id.slice(0, 5)})`}</span>
+                    {profile?.is_admin && rsvp.profiles && (
+                      <span 
+                        title={(rsvp.profiles.game_tokens ?? 0) === 1 ? '⚠️ 1 Game Left! (Needs cash next match)' : (rsvp.profiles.game_tokens ?? 0) <= 0 ? '🚨 0 Games Available! (Needs Cash)' : `Game tokens remaining: ${rsvp.profiles.game_tokens}`}
+                        className={cn(
+                          "text-[9px] font-black uppercase px-2 py-0.5 rounded-full border tracking-wider flex items-center gap-1",
+                          (rsvp.profiles.game_tokens ?? 0) === 1
+                            ? "bg-amber-500/20 text-amber-300 border-amber-500/50"
+                            : (rsvp.profiles.game_tokens ?? 0) > 0 
+                              ? "bg-[#00ff66]/10 text-[#00ff66] border-[#00ff66]/20" 
+                              : "bg-red-500/15 text-red-400 border-red-500/30"
+                        )}
+                      >
+                        <Ticket size={9} />
+                        {(rsvp.profiles.game_tokens ?? 0) === 1 ? '1 (Last)' : (rsvp.profiles.game_tokens ?? 0)}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 {rsvp.created_at && (
                   <span className="text-[10px] font-mono text-white/30 tracking-wider font-semibold">
