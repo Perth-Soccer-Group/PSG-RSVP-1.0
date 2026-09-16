@@ -17,7 +17,20 @@ export default function App() {
   const [activeTab, setActiveTab] = useState<'match' | 'history' | 'admin'>('match');
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [isResettingPassword, setIsResettingPassword] = useState(false);
+  const [isResettingPassword, setIsResettingPassword] = useState(
+    () => window.location.pathname.startsWith('/reset-password')
+  );
+  // Errors Supabase sends back in the URL hash (e.g. expired email links)
+  const [linkError] = useState<string | null>(() => {
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const code = hash.get('error_code');
+    if (!code && !hash.get('error')) return null;
+    window.history.replaceState({}, '', window.location.pathname);
+    if (code === 'otp_expired') {
+      return 'That email link has expired or was already used. Please request a new one.';
+    }
+    return hash.get('error_description')?.replace(/\+/g, ' ') || 'That email link could not be used. Please try again.';
+  });
 
   // Handle Public Route
   const path = window.location.pathname;
@@ -49,6 +62,7 @@ export default function App() {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'PASSWORD_RECOVERY') {
+        window.history.replaceState({}, '', '/reset-password');
         setIsResettingPassword(true);
       }
       setSession(session);
@@ -306,6 +320,10 @@ export default function App() {
     );
   }
 
+  if (isResettingPassword) {
+    return <UpdatePassword onComplete={() => setIsResettingPassword(false)} />;
+  }
+
   if (loading) {
     return (
       <div className="min-h-screen bg-black flex items-center justify-center">
@@ -314,15 +332,11 @@ export default function App() {
     );
   }
 
-  if (isResettingPassword) {
-    return <UpdatePassword onComplete={() => setIsResettingPassword(false)} />;
-  }
-
   if (isPublicRoute && publicGameId) {
     return <PublicGameView gameId={publicGameId} />;
   }
 
-  if (!session) return <Auth />;
+  if (!session) return <Auth initialError={linkError} />;
 
   const tabs = [
     { id: 'match', label: 'Match', icon: Trophy },
