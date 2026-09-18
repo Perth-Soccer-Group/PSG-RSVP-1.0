@@ -191,7 +191,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
         }
 
         // Token check: All players must have at least 1 game token to RSVP
-        const localTokens = profile?.game_tokens ?? 0;
+        const localTokens = profile?.game_tokens ?? 2;
         if (localTokens <= 0) {
           setShowNoTokensModal(true);
           setError('You have 0 game tokens left. Please contact Admin to top up ($20 = 10 games/tokens). Payment Method: Australian PayID or Cash in hand for pitch lights.');
@@ -207,6 +207,9 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
             .single();
           if (freshProf && freshProf.game_tokens !== undefined && freshProf.game_tokens !== null) {
             currentTokens = freshProf.game_tokens;
+          } else if (freshProf && (freshProf.game_tokens === null || freshProf.game_tokens === undefined)) {
+            currentTokens = 2;
+            supabase.from('profiles').update({ game_tokens: 2, is_approved: true }).eq('id', user.id).then();
           }
         } catch (tokFetchErr) {
           console.warn('Could not fetch fresh profile tokens:', tokFetchErr);

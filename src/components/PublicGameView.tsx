@@ -174,15 +174,41 @@ export default function PublicGameView({ gameId }: PublicGameViewProps) {
         .eq('id', userId)
         .single();
       if (data) {
-        const tokens = (data.game_tokens !== null && data.game_tokens !== undefined) ? data.game_tokens : 2;
+        let tokens = (data.game_tokens !== null && data.game_tokens !== undefined) ? data.game_tokens : 2;
+        if (data.game_tokens === null || data.game_tokens === undefined) {
+          try {
+            await supabase.from('profiles').update({ game_tokens: 2, is_approved: true }).eq('id', userId);
+          } catch (e) {
+            console.warn('Could not auto-seed tokens in database:', e);
+          }
+        }
         setCurrentUserProfile({
           ...data,
-          is_approved: data.is_approved ?? true,
+          is_approved: true,
           game_tokens: tokens
+        });
+      } else {
+        // Fallback if profile row is not created yet
+        setCurrentUserProfile({
+          id: userId,
+          full_name: currentUser?.email ? currentUser.email.split('@')[0] : 'Player',
+          email: currentUser?.email,
+          is_approved: true,
+          game_tokens: 2,
+          created_at: new Date().toISOString()
         });
       }
     } catch (err) {
       console.error('Error fetching user profile:', err);
+      // Fallback on error to ensure user can still RSVP with 2 starter tokens
+      setCurrentUserProfile({
+        id: userId,
+        full_name: currentUser?.email ? currentUser.email.split('@')[0] : 'Player',
+        email: currentUser?.email,
+        is_approved: true,
+        game_tokens: 2,
+        created_at: new Date().toISOString()
+      });
     }
   };
 
@@ -247,19 +273,14 @@ export default function PublicGameView({ gameId }: PublicGameViewProps) {
       return;
     }
 
-    if (currentUserProfile && !currentUserProfile.is_approved) {
-      setRsvpMessage({ type: 'error', text: 'Your account is pending approval by an admin.' });
-      return;
-    }
-
     // Token check: All players must have at least 1 game token to RSVP "I'M IN"
     if (going) {
-      const localTokens = currentUserProfile?.game_tokens ?? 0;
+      const localTokens = currentUserProfile?.game_tokens ?? 2;
       if (localTokens <= 0) {
         setShowNoTokensModal(true);
         setRsvpMessage({ 
           type: 'error', 
-          text: 'You have 0 game tokens remaining. Please contact President/Admin Charley Moraes to pay and get 20 more games added.' 
+          text: 'You have 0 game tokens remaining. Please contact Admin to top up ($20 = 10 games/tokens). Payment Method: Australian PayID or Cash in hand for pitch lights.' 
         });
         return;
       }
@@ -274,6 +295,9 @@ export default function PublicGameView({ gameId }: PublicGameViewProps) {
         if (freshProf && freshProf.game_tokens !== undefined && freshProf.game_tokens !== null) {
           currentTokens = freshProf.game_tokens;
           setCurrentUserProfile(prev => prev ? { ...prev, game_tokens: freshProf.game_tokens } : prev);
+        } else if (freshProf && (freshProf.game_tokens === null || freshProf.game_tokens === undefined)) {
+          currentTokens = 2;
+          supabase.from('profiles').update({ game_tokens: 2, is_approved: true }).eq('id', currentUser.id).then();
         }
       } catch (tokFetchErr) {
         console.warn('Could not fetch fresh tokens:', tokFetchErr);
@@ -283,7 +307,7 @@ export default function PublicGameView({ gameId }: PublicGameViewProps) {
         setShowNoTokensModal(true);
         setRsvpMessage({ 
           type: 'error', 
-          text: 'You have 0 game tokens remaining. Please contact President/Admin Charley Moraes to pay and get 20 more games added.' 
+          text: 'You have 0 game tokens remaining. Please contact Admin to top up ($20 = 10 games/tokens). Payment Method: Australian PayID or Cash in hand for pitch lights.' 
         });
         return;
       }

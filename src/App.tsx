@@ -237,9 +237,18 @@ export default function App() {
         if (userTokens === null || userTokens === undefined) {
           userTokens = 2;
           try {
-            await supabase.from('profiles').update({ game_tokens: 2 }).eq('id', userId);
+            await supabase.from('profiles').update({ game_tokens: 2, is_approved: true }).eq('id', userId);
           } catch (tokUpdateErr) {
             console.warn('Could not auto-seed tokens in database:', tokUpdateErr);
+          }
+        }
+
+        // Auto-approve users on login so they can RSVP immediately
+        if (!data.is_approved) {
+          try {
+            await supabase.from('profiles').update({ is_approved: true }).eq('id', userId);
+          } catch (apprErr) {
+            console.warn('Could not auto-approve profile:', apprErr);
           }
         }
 
@@ -294,7 +303,7 @@ export default function App() {
           setProfile({
             ...data,
             email: email || data.email,
-            is_approved: data.is_approved ?? true,
+            is_approved: true,
             is_admin: isCharley ? true : !!data.is_admin,
             game_tokens: userTokens ?? 2
           });
