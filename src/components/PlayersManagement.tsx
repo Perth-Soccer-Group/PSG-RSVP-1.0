@@ -12,7 +12,6 @@ import {
   Ticket, 
   AlertCircle, 
   Edit3, 
-  Banknote, 
   Search,
   Sparkles,
   RefreshCw
@@ -239,7 +238,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
             placeholder="Search by name or email..."
             value={searchTerm}
             onChange={e => setSearchTerm(e.target.value)}
-            className="w-full bg-[#181B26] text-white placeholder-white/40 rounded-full pl-10 pr-4 py-2.5 text-sm font-medium outline-none focus:bg-[#202534] transition-colors"
+            className="w-full glass-card text-white placeholder-white/40 rounded-full pl-10 pr-4 py-2.5 text-sm font-medium outline-none focus:border-white/30 transition-colors"
           />
           {searchTerm && (
             <button 
@@ -294,16 +293,16 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
         </div>
       )}
 
-      {/* 5 High-Contrast Stat Cards (Matching Image 1) */}
+      {/* 5 High-Contrast Stat Cards (Glass Card style) */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {/* Total Players */}
         <button
           onClick={() => setUserTabFilter('all')}
           className={cn(
-            "p-5 rounded-2xl text-left transition-all relative overflow-hidden group",
+            "p-5 rounded-2xl text-left transition-all relative overflow-hidden group cursor-pointer",
             userTabFilter === 'all'
-              ? "bg-[#282D3D] shadow-lg shadow-white/5"
-              : "bg-[#181B26] hover:bg-[#202534]"
+              ? "glass-card border-white/40 shadow-lg shadow-white/5 bg-white/10"
+              : "glass-card hover:bg-white/[0.08]"
           )}
         >
           <div className="text-[11px] uppercase font-black tracking-wider text-white/50">TOTAL PLAYERS</div>
@@ -315,10 +314,10 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
         <button
           onClick={() => setUserTabFilter('active')}
           className={cn(
-            "p-5 rounded-2xl text-left transition-all relative overflow-hidden group",
+            "p-5 rounded-2xl text-left transition-all relative overflow-hidden group cursor-pointer",
             userTabFilter === 'active'
-              ? "bg-[#1A2E56] shadow-lg shadow-[#0055FF]/15"
-              : "bg-[#181B26] hover:bg-[#202534]"
+              ? "glass-card border-[#0055FF]/60 shadow-lg shadow-[#0055FF]/20 bg-[#0055FF]/15"
+              : "glass-card hover:bg-white/[0.08]"
           )}
         >
           <div className="text-[11px] uppercase font-black tracking-wider text-[#4D88FF]">ACTIVE PLAYERS</div>
@@ -330,10 +329,10 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
         <button
           onClick={() => setUserTabFilter('no_tokens')}
           className={cn(
-            "p-5 rounded-2xl text-left transition-all relative overflow-hidden group",
+            "p-5 rounded-2xl text-left transition-all relative overflow-hidden group cursor-pointer",
             userTabFilter === 'no_tokens'
-              ? "bg-[#331812] shadow-lg shadow-[#FF5500]/20"
-              : "bg-[#181B26] hover:bg-[#202534]"
+              ? "glass-card border-[#FF5500]/60 shadow-lg shadow-[#FF5500]/25 bg-[#FF5500]/15"
+              : "glass-card hover:bg-white/[0.08]"
           )}
         >
           <div className="text-[11px] uppercase font-black tracking-wider text-[#FF7033] flex items-center gap-1.5">
@@ -348,10 +347,10 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
         <button
           onClick={() => setUserTabFilter('one_token')}
           className={cn(
-            "p-5 rounded-2xl text-left transition-all relative overflow-hidden group",
+            "p-5 rounded-2xl text-left transition-all relative overflow-hidden group cursor-pointer",
             userTabFilter === 'one_token'
-              ? "bg-[#332B12] shadow-lg shadow-[#FFBE0B]/20"
-              : "bg-[#181B26] hover:bg-[#202534]"
+              ? "glass-card border-[#FFBE0B]/60 shadow-lg shadow-[#FFBE0B]/25 bg-[#FFBE0B]/15"
+              : "glass-card hover:bg-white/[0.08]"
           )}
         >
           <div className="text-[11px] uppercase font-black tracking-wider text-[#FFD154] flex items-center gap-1.5">
@@ -366,10 +365,10 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
         <button
           onClick={() => setUserTabFilter('pending')}
           className={cn(
-            "p-5 rounded-2xl text-left transition-all relative overflow-hidden group",
+            "p-5 rounded-2xl text-left transition-all relative overflow-hidden group cursor-pointer",
             userTabFilter === 'pending'
-              ? "bg-[#282D3D] shadow-lg shadow-white/5"
-              : "bg-[#181B26] hover:bg-[#202534]"
+              ? "glass-card border-white/40 shadow-lg shadow-white/5 bg-white/10"
+              : "glass-card hover:bg-white/[0.08]"
           )}
         >
           <div className="text-[11px] uppercase font-black tracking-wider text-white flex items-center gap-1.5">
@@ -381,7 +380,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
         </button>
       </div>
 
-      {/* REFERENCE-INSPIRED FILTER PILLS (NO STROKE, HIGH CONTRAST SOLID PILLS) */}
+      {/* FILTER PILLS */}
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2.5">
           {/* ALL */}
@@ -391,26 +390,26 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
               "rounded-full px-5 py-2.5 text-sm font-black transition-all flex items-center gap-2 cursor-pointer",
               userTabFilter === 'all'
                 ? "bg-white text-black shadow-lg shadow-white/20 scale-105"
-                : "bg-[#242834] text-white/90 hover:bg-[#2E3444] hover:text-white"
+                : "glass-card text-white/90 hover:bg-white/10 hover:text-white"
             )}
           >
             <span>All</span>
             <span className={cn(
               "w-5 h-5 rounded-full text-[11px] font-black inline-flex items-center justify-center",
-              userTabFilter === 'all' ? "bg-black text-white" : "bg-[#151720] text-white/70"
+              userTabFilter === 'all' ? "bg-black text-white" : "bg-black/40 text-white/70"
             )}>
               {totalCount}
             </span>
           </button>
 
-          {/* 0 TOKENS / NEEDS CASH (Reference Warm Vermilion Orange) */}
+          {/* 0 TOKENS / NEEDS CASH (Warm Vermilion Orange) */}
           <button
             onClick={() => setUserTabFilter('no_tokens')}
             className={cn(
               "rounded-full px-5 py-2.5 text-sm font-black transition-all flex items-center gap-2 cursor-pointer",
               userTabFilter === 'no_tokens'
                 ? "bg-[#FF5500] text-black shadow-lg shadow-[#FF5500]/30 scale-105"
-                : "bg-[#242834] text-white/90 hover:bg-[#2E3444] hover:text-white"
+                : "glass-card text-white/90 hover:bg-white/10 hover:text-white"
             )}
           >
             <span>0 Tokens / Needs Cash</span>
@@ -422,14 +421,14 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
             </span>
           </button>
 
-          {/* 1 GAME LEFT / PAYING SOON (Reference Golden Yellow) */}
+          {/* 1 GAME LEFT / PAYING SOON (Golden Yellow) */}
           <button
             onClick={() => setUserTabFilter('one_token')}
             className={cn(
               "rounded-full px-5 py-2.5 text-sm font-black transition-all flex items-center gap-2 cursor-pointer",
               userTabFilter === 'one_token'
                 ? "bg-[#FFBE0B] text-black shadow-lg shadow-[#FFBE0B]/30 scale-105"
-                : "bg-[#242834] text-white/90 hover:bg-[#2E3444] hover:text-white"
+                : "glass-card text-white/90 hover:bg-white/10 hover:text-white"
             )}
           >
             <span>1 Game Left / Paying Soon</span>
@@ -448,26 +447,26 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
               "rounded-full px-5 py-2.5 text-sm font-black transition-all flex items-center gap-2 cursor-pointer",
               userTabFilter === 'pending'
                 ? "bg-white text-black shadow-lg shadow-white/20 scale-105"
-                : "bg-[#242834] text-white/90 hover:bg-[#2E3444] hover:text-white"
+                : "glass-card text-white/90 hover:bg-white/10 hover:text-white"
             )}
           >
             <span>Pending</span>
             <span className={cn(
               "w-5 h-5 rounded-full text-[11px] font-black inline-flex items-center justify-center",
-              userTabFilter === 'pending' ? "bg-black text-white" : "bg-[#151720] text-white/70"
+              userTabFilter === 'pending' ? "bg-black text-white" : "bg-black/40 text-white/70"
             )}>
               {pendingCount}
             </span>
           </button>
 
-          {/* ACTIVE (Reference Electric Blue) */}
+          {/* ACTIVE (Electric Blue) */}
           <button
             onClick={() => setUserTabFilter('active')}
             className={cn(
               "rounded-full px-5 py-2.5 text-sm font-black transition-all flex items-center gap-2 cursor-pointer",
               userTabFilter === 'active'
                 ? "bg-[#0055FF] text-white shadow-lg shadow-[#0055FF]/30 scale-105"
-                : "bg-[#242834] text-white/90 hover:bg-[#2E3444] hover:text-white"
+                : "glass-card text-white/90 hover:bg-white/10 hover:text-white"
             )}
           >
             <span>Active</span>
@@ -480,8 +479,8 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
           </button>
         </div>
 
-        {/* PAYMENT FLAGS ROW (NO STROKE, SOLID HIGH CONTRAST PILLS) */}
-        <div className="flex flex-wrap items-center justify-between gap-4 bg-[#141721] rounded-2xl px-5 py-4">
+        {/* PAYMENT FLAGS ROW */}
+        <div className="flex flex-wrap items-center justify-between gap-4 glass-card px-5 py-4">
           <div className="flex items-center flex-wrap gap-2.5 text-xs font-bold">
             <span className="text-white/40 uppercase tracking-widest text-[11px] font-black mr-1">
               PAYMENT FLAGS:
@@ -513,7 +512,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
       </div>
 
       {/* PayID / Cash Info Box */}
-      <div className="flex flex-wrap items-center justify-between gap-4 text-xs bg-[#181B26] rounded-2xl p-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 text-xs glass-card p-4">
         <div className="flex items-center gap-3">
           <span className="w-8 h-8 rounded-full bg-[#0055FF] text-white flex items-center justify-center text-sm font-black shrink-0">
             💳
@@ -523,14 +522,14 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
               Payment Method: <span className="text-[#FFBE0B]">Australian PayID (default)</span> or Cash in hand for pitch lights
             </div>
             <div className="text-white/50 text-[11px] mt-0.5 font-medium">
-              Standard block is 20 games. When cash or PayID is received, click <strong className="text-[#60A5FA]">+20 Games Paid</strong> to top up immediately.
+              Manage member game tokens directly using the token balance controls.
             </div>
           </div>
         </div>
 
         <button 
           onClick={fetchProfiles}
-          className="p-2 rounded-full bg-[#242834] hover:bg-[#2E3444] text-white/70 hover:text-white transition-colors"
+          className="p-2 rounded-full bg-white/10 hover:bg-white/20 text-white/70 hover:text-white transition-colors cursor-pointer"
           title="Refresh player list"
         >
           <RefreshCw size={15} className={cn(loading && "animate-spin")} />
@@ -538,10 +537,10 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
       </div>
 
       {/* Players Directory */}
-      <div className="bg-[#141721] rounded-3xl overflow-hidden shadow-2xl">
+      <div className="glass-card overflow-hidden shadow-2xl">
         {/* Desktop Table */}
         <table className="hidden md:table w-full text-left border-collapse">
-          <thead className="bg-[#181B26] text-white/40 text-[10px] uppercase font-black tracking-widest">
+          <thead className="bg-white/5 text-white/40 text-[10px] uppercase font-black tracking-widest border-b border-white/5">
             <tr>
               <th className="p-5">PLAYER & PAYMENT STATUS</th>
               <th className="p-5">STATUS</th>
@@ -555,7 +554,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
               const isApproved = profile.is_approved;
 
               return (
-                <tr key={profile.id} className="hover:bg-white/[0.02] transition-colors">
+                <tr key={profile.id} className="hover:bg-white/[0.03] transition-colors">
                   {/* Player Name & Info */}
                   <td className="p-5">
                     <div className="font-bold flex items-center flex-wrap gap-2">
@@ -601,26 +600,18 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
                     )}
                   </td>
 
-                  {/* Game Tokens (Available) & +20 Games Quick Button */}
+                  {/* Game Tokens (Available) */}
                   <td className="p-5">
                     {!isApproved ? (
                       <div className="flex items-center gap-2">
                         <button 
-                          onClick={() => approveUser(profile.id, 20)}
-                          disabled={approvingId === profile.id}
-                          className="bg-[#0055FF] hover:bg-[#0047E0] text-white px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-md shadow-[#0055FF]/20"
-                          title="Approve and credit 20 games"
-                        >
-                          {approvingId === profile.id ? <Loader2 className="animate-spin" size={13} /> : <Check size={13} />}
-                          Approve + 20 Games
-                        </button>
-                        <button 
                           onClick={() => approveUser(profile.id, 0)}
                           disabled={approvingId === profile.id}
-                          className="bg-[#242834] hover:bg-[#2E3444] text-white px-3.5 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-1 disabled:opacity-50 cursor-pointer"
-                          title="Approve without adding tokens"
+                          className="bg-[#0055FF] hover:bg-[#0047E0] text-white px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 disabled:opacity-50 cursor-pointer shadow-md shadow-[#0055FF]/20"
+                          title="Approve player"
                         >
-                          Approve (0)
+                          {approvingId === profile.id ? <Loader2 className="animate-spin" size={13} /> : <Check size={13} />}
+                          Approve Player
                         </button>
                       </div>
                     ) : (
@@ -636,19 +627,9 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
                         </div>
 
                         <button
-                          onClick={() => addCashTokens(profile, 20)}
-                          disabled={updatingTokenId === profile.id}
-                          className="bg-[#0055FF] hover:bg-[#0047E0] text-white px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-md shadow-[#0055FF]/20 active:scale-95 disabled:opacity-50 cursor-pointer"
-                          title="Player transferred PayID or paid cash: Add 20 games"
-                        >
-                          <Banknote size={14} />
-                          +20 Games Paid
-                        </button>
-
-                        <button
                           onClick={() => setTokenEditModal({ id: profile.id, name: profile.full_name, tokens })}
                           title="Manually set token count"
-                          className="px-3 py-2 rounded-full bg-[#242834] hover:bg-[#2E3444] text-white/80 hover:text-white transition-all text-xs font-bold flex items-center gap-1 cursor-pointer"
+                          className="px-3 py-2 rounded-full bg-white/10 hover:bg-white/20 text-white/80 hover:text-white transition-all text-xs font-bold flex items-center gap-1 cursor-pointer"
                         >
                           <Edit3 size={13} />
                           <span>Edit</span>
@@ -663,7 +644,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
                       {isApproved && (
                         <>
                           {togglingAdminId === profile.id ? (
-                            <div className="flex items-center gap-2 bg-[#242834] px-3 py-1.5 rounded-full">
+                            <div className="flex items-center gap-2 bg-white/10 px-3 py-1.5 rounded-full">
                               <span className="text-[10px] font-bold text-[#FFBE0B] uppercase">Confirm?</span>
                               <button 
                                 onClick={() => toggleAdmin(profile.id, profile.is_admin)}
@@ -702,7 +683,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
                                   "px-3 py-1.5 rounded-full transition-all text-xs font-bold flex items-center gap-1.5 cursor-pointer",
                                   profile.is_admin 
                                     ? "bg-[#00E65C]/15 text-[#00E65C]" 
-                                    : "bg-[#242834] text-white/50 hover:text-white hover:bg-[#2E3444]"
+                                    : "bg-white/10 text-white/60 hover:text-white hover:bg-white/15"
                                 )}
                               >
                                 <Shield size={12} />
@@ -711,7 +692,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
 
                               <button 
                                 onClick={() => setDeletingProfileId(profile.id)}
-                                className="text-white/20 hover:text-[#FF5500] p-2 transition-colors rounded-full hover:bg-[#FF5500]/10 cursor-pointer"
+                                className="text-white/30 hover:text-[#FF5500] p-2 transition-colors rounded-full hover:bg-white/10 cursor-pointer"
                                 title="Revoke player access"
                               >
                                 <X size={15} />
@@ -785,19 +766,11 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
                   {isApproved && (
                     <div className="flex items-center gap-2">
                       <button
-                        onClick={() => addCashTokens(profile, 20)}
-                        disabled={updatingTokenId === profile.id}
-                        className="bg-[#0055FF] active:bg-[#0047E0] text-white px-3.5 py-2 rounded-full text-xs font-black uppercase tracking-wider transition-all flex items-center gap-1 shadow-md shadow-[#0055FF]/20"
-                      >
-                        <Banknote size={14} />
-                        +20 Paid
-                      </button>
-
-                      <button
                         onClick={() => setTokenEditModal({ id: profile.id, name: profile.full_name, tokens })}
-                        className="p-2 rounded-full bg-[#242834] text-white/70 hover:text-white"
+                        className="px-3.5 py-2 rounded-full bg-white/10 text-white/80 hover:text-white text-xs font-bold flex items-center gap-1.5 cursor-pointer"
                       >
                         <Edit3 size={14} />
+                        <span>Edit Tokens</span>
                       </button>
                     </div>
                   )}
@@ -805,21 +778,14 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
 
                 {/* Approvals / Admin Actions */}
                 {!isApproved ? (
-                  <div className="grid grid-cols-2 gap-2 pt-2">
-                    <button 
-                      onClick={() => approveUser(profile.id, 20)}
-                      disabled={approvingId === profile.id}
-                      className="bg-[#0055FF] text-white px-4 py-2.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2"
-                    >
-                      {approvingId === profile.id ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} />}
-                      Approve + 20
-                    </button>
+                  <div className="pt-2">
                     <button 
                       onClick={() => approveUser(profile.id, 0)}
                       disabled={approvingId === profile.id}
-                      className="bg-[#242834] text-white px-4 py-2.5 rounded-full text-xs font-bold flex items-center justify-center gap-1"
+                      className="w-full bg-[#0055FF] text-white px-4 py-2.5 rounded-full text-xs font-black uppercase tracking-wider flex items-center justify-center gap-2 cursor-pointer shadow-md shadow-[#0055FF]/20"
                     >
-                      Approve (0)
+                      {approvingId === profile.id ? <Loader2 className="animate-spin" size={14} /> : <Check size={14} />}
+                      Approve Player
                     </button>
                   </div>
                 ) : (
@@ -828,7 +794,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
                       onClick={() => toggleAdmin(profile.id, profile.is_admin)}
                       className={cn(
                         "px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1.5",
-                        profile.is_admin ? "bg-[#00E65C]/20 text-[#00E65C]" : "bg-[#242834] text-white/50"
+                        profile.is_admin ? "bg-[#00E65C]/20 text-[#00E65C]" : "bg-white/10 text-white/60"
                       )}
                     >
                       <Shield size={12} />
@@ -837,7 +803,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
 
                     <button 
                       onClick={() => revokeAccess(profile.id)}
-                      className="text-white/30 hover:text-[#FF5500] text-xs font-semibold px-2 py-1"
+                      className="text-white/30 hover:text-[#FF5500] text-xs font-semibold px-2 py-1 cursor-pointer"
                     >
                       Revoke Access
                     </button>
@@ -851,7 +817,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
         {/* Empty State */}
         {filteredProfiles.length === 0 && !loading && (
           <div className="text-center py-16 space-y-3">
-            <div className="w-12 h-12 rounded-full bg-[#242834] text-white/40 flex items-center justify-center mx-auto">
+            <div className="w-12 h-12 rounded-full bg-white/10 text-white/40 flex items-center justify-center mx-auto">
               <Users size={24} />
             </div>
             <div className="text-white font-bold text-base">No players found</div>
@@ -878,7 +844,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-[#181B26] max-w-md w-full p-6 rounded-3xl space-y-6 shadow-2xl"
+              className="glass-card bg-[#181B26]/95 max-w-md w-full p-6 rounded-3xl space-y-6 shadow-2xl border border-white/20"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2 font-black text-xl text-white">
@@ -889,17 +855,17 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
                 </div>
                 <button 
                   onClick={() => setTokenEditModal(null)}
-                  className="text-white/40 hover:text-white transition-colors"
+                  className="text-white/40 hover:text-white transition-colors cursor-pointer"
                 >
                   <X size={20} />
                 </button>
               </div>
 
-              <div className="bg-[#141721] p-4 rounded-2xl space-y-1">
+              <div className="glass-card p-4 rounded-2xl space-y-1">
                 <div className="text-[10px] text-white/40 uppercase font-black tracking-wider">Player</div>
                 <div className="text-lg font-bold text-white">{tokenEditModal.name}</div>
                 <div className="text-xs text-[#60A5FA] font-medium mt-1">
-                  Cash payment for lighting costs (Standard block: 20 games)
+                  Adjust available prepaid games for player
                 </div>
               </div>
 
@@ -914,27 +880,33 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
                     max="500"
                     value={tokenEditModal.tokens}
                     onChange={e => setTokenEditModal(prev => prev ? { ...prev, tokens: Math.max(0, parseInt(e.target.value) || 0) } : null)}
-                    className="flex-1 bg-[#141721] rounded-2xl px-4 py-3 text-2xl font-mono font-black text-white focus:bg-[#202534] outline-none"
+                    className="flex-1 glass-card rounded-2xl px-4 py-3 text-2xl font-mono font-black text-white focus:bg-white/10 outline-none"
                   />
                   <div className="text-sm font-black text-white/40 uppercase">Games</div>
                 </div>
               </div>
 
-              {/* Quick Presets with Reference-Inspired Colors */}
+              {/* Quick Presets */}
               <div className="space-y-2">
                 <div className="text-[10px] uppercase font-bold text-white/40 tracking-wider">Quick Presets:</div>
                 <div className="grid grid-cols-3 gap-2">
                   <button
-                    onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: (prev.tokens || 0) + 20 } : null)}
-                    className="bg-[#0055FF] hover:bg-[#0047E0] text-white py-2.5 rounded-full text-xs font-black transition-all cursor-pointer shadow-md shadow-[#0055FF]/20"
-                  >
-                    +20 Games 💵
-                  </button>
-                  <button
                     onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: (prev.tokens || 0) + 10 } : null)}
-                    className="bg-[#242834] hover:bg-[#2E3444] text-white py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer"
+                    className="glass-card hover:bg-white/15 text-white py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer"
                   >
                     +10 Games
+                  </button>
+                  <button
+                    onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: (prev.tokens || 0) + 5 } : null)}
+                    className="glass-card hover:bg-white/15 text-white py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer"
+                  >
+                    +5 Games
+                  </button>
+                  <button
+                    onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: (prev.tokens || 0) + 1 } : null)}
+                    className="glass-card hover:bg-white/15 text-white py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer"
+                  >
+                    +1 Game
                   </button>
                   <button
                     onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: 20 } : null)}
@@ -944,15 +916,9 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
                   </button>
                   <button
                     onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: 10 } : null)}
-                    className="bg-[#242834] hover:bg-[#2E3444] text-white py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer"
+                    className="glass-card hover:bg-white/15 text-white py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer"
                   >
                     Set to 10
-                  </button>
-                  <button
-                    onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: 5 } : null)}
-                    className="bg-[#242834] hover:bg-[#2E3444] text-white py-2.5 rounded-full text-xs font-bold transition-all cursor-pointer"
-                  >
-                    Set to 5
                   </button>
                   <button
                     onClick={() => setTokenEditModal(prev => prev ? { ...prev, tokens: 0 } : null)}
@@ -966,7 +932,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
               <div className="flex gap-3 pt-2">
                 <button
                   onClick={() => setTokenEditModal(null)}
-                  className="flex-1 bg-[#242834] hover:bg-[#2E3444] text-white py-3 rounded-full font-bold text-sm transition-all cursor-pointer"
+                  className="flex-1 glass-card hover:bg-white/15 text-white py-3 rounded-full font-bold text-sm transition-all cursor-pointer"
                 >
                   Cancel
                 </button>

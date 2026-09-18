@@ -575,8 +575,8 @@ export default function AdminView({ initialTab = 'matches', onTabChange }: Admin
           <p className="text-white/40 font-bold uppercase tracking-widest text-xs">Manage games, players and polls.</p>
         </div>
 
-        {/* Reference-Inspired High Contrast Sub-Tab Switcher (No Stroke) */}
-        <div className="flex items-center gap-2 p-1.5 bg-[#181B26] rounded-full w-fit">
+        {/* Sub-Tab Switcher */}
+        <div className="flex items-center gap-2 p-1.5 glass-card rounded-full w-fit">
           <button
             onClick={() => { setAdminTab('matches'); onTabChange?.('matches'); }}
             className={cn(
@@ -915,29 +915,6 @@ export default function AdminView({ initialTab = 'matches', onTabChange }: Admin
           {historyGames.length === 0 && <p className="text-white/20 italic text-center py-10">No match history yet.</p>}
         </div>
       </section>
-
-        {/* Quick link card to Players Management */}
-        <div className="bg-[#141721] p-6 rounded-3xl flex flex-col sm:flex-row items-center justify-between gap-4 shadow-xl">
-          <div className="flex items-center gap-3">
-            <span className="w-10 h-10 rounded-full bg-[#0055FF] text-white flex items-center justify-center font-black shrink-0">
-              <Users size={20} />
-            </span>
-            <div>
-              <div className="text-white font-black text-base uppercase tracking-tight">Players & Game Tokens Management</div>
-              <div className="text-white/40 text-xs mt-0.5 font-medium">Manage member approvals, PayID / Cash payments, and prepaid 20-game packs in the dedicated Players Management tab.</div>
-            </div>
-          </div>
-          <button
-            onClick={() => { setAdminTab('players'); onTabChange?.('players'); }}
-            className="bg-[#0055FF] hover:bg-[#0047E0] text-white px-5 py-2.5 rounded-full font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 shrink-0 cursor-pointer shadow-lg shadow-[#0055FF]/25"
-          >
-            <Users size={14} />
-            Open Players Management
-          </button>
-        </div>
-
-        
-
 
       </>
     )}
