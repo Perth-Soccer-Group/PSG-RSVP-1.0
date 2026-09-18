@@ -194,7 +194,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
         const localTokens = profile?.game_tokens ?? 0;
         if (localTokens <= 0) {
           setShowNoTokensModal(true);
-          setError('You have 0 game tokens left. Contact the President / Admin (Charley Moraes) to pay via PayID and get 20 games added.');
+          setError('You have 0 game tokens left. Please contact Admin to top up ($20 = 10 games/tokens). Payment Method: Australian PayID or Cash in hand for pitch lights.');
           return;
         }
 
@@ -214,7 +214,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
 
         if (currentTokens <= 0) {
           setShowNoTokensModal(true);
-          setError('You have 0 game tokens left. Contact the President / Admin (Charley Moraes) to pay via PayID and get 20 games added.');
+          setError('You have 0 game tokens left. Please contact Admin to top up ($20 = 10 games/tokens). Payment Method: Australian PayID or Cash in hand for pitch lights.');
           return;
         }
 
@@ -250,7 +250,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
 
         if (newStatus === 'confirmed') {
           if (currentTokens === 1) {
-            setSuccess("You're on it! ⚠️ That was your 20th game (0 tokens remaining). Please contact the president/admin to pay via Australian PayID (or cash) before your next match!");
+            setSuccess("You're on it! ⚠️ That was your final game token (0 tokens remaining). Top up rate: $20 = 10 games/tokens. Please contact Admin before your next match!");
           } else {
             setSuccess(`You're on it! 1 game token used (${currentTokens - 1} remaining).`);
           }
@@ -690,10 +690,10 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                     <AlertCircle size={14} /> 0 Games Available
                   </div>
                   <h4 className="text-lg font-black tracking-tight text-white uppercase">
-                    Contact President / Admin to RSVP
+                    Contact Admin to RSVP
                   </h4>
                   <p className="text-xs text-white/70 leading-relaxed max-w-sm mx-auto">
-                    You have run out of game tokens. Payment is collected via <strong>Australian PayID</strong> (default) or cash for pitch lights. Contact the president/admin to pay and get 20 more games credited.
+                    You have run out of game tokens. Top-up rate: <strong>$20 = 10 games/tokens</strong>. Payment Method: Australian PayID or Cash in hand for pitch lights. Contact Admin to get tokens added.
                   </p>
                   <div className="pt-1">
                     <button
@@ -704,7 +704,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                       }}
                       className="inline-flex items-center gap-1.5 text-xs font-black text-red-300 bg-red-500/25 px-4 py-2 rounded-full border border-red-500/40 tracking-wide hover:bg-red-500/40 transition-colors"
                     >
-                      💬 Tap to Contact President / Admin
+                      💬 Contact Admin
                     </button>
                   </div>
                 </motion.div>
@@ -719,18 +719,19 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                   className="w-full max-w-lg p-5 rounded-3xl bg-amber-500/15 border border-amber-500/40 text-center space-y-2 backdrop-blur-md shadow-[0_0_25px_rgba(245,158,11,0.2)]"
                 >
                   <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/25 text-amber-300 text-xs font-black uppercase tracking-wider border border-amber-500/40 animate-pulse">
-                    <AlertCircle size={14} /> ⚠️ Only 1 Game Token Available!
+                    <AlertCircle size={14} /> ⚠️ Only 1 Game Token Left!
                   </div>
-                  <h4 className="text-lg font-black tracking-tight text-white uppercase">
-                    This is your 20th game (Last Credit)
-                  </h4>
                   <p className="text-xs text-amber-200/90 leading-relaxed max-w-sm mx-auto">
-                    You can join this match, but your token balance will reach <strong>0</strong>. Remember to transfer via <strong>Australian PayID</strong> (or bring pitch lights cash) so the admin can credit your next 20 games!
+                    You can join this match, but your token balance will reach <strong>0</strong>. Top-up rate: <strong>$20 = 10 games/tokens</strong>. Contact Admin to top up!
                   </p>
                   <div className="pt-1">
-                    <span className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-500/20 px-3.5 py-1.5 rounded-full border border-amber-500/30">
-                      📱 PayID to Admin before next game
-                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setShowNoTokensModal(true)}
+                      className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-300 bg-amber-500/20 px-3.5 py-1.5 rounded-full border border-amber-500/30 hover:bg-amber-500/30 transition-colors cursor-pointer"
+                    >
+                      💬 Contact Admin to Top Up ($20 = 10 Games)
+                    </button>
                   </div>
                 </motion.div>
               );
@@ -747,7 +748,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                     <Ticket size={13} /> You used your last game token for this match!
                   </div>
                   <p className="text-xs text-white/80 leading-relaxed max-w-sm mx-auto">
-                    You're locked into this game, but have 0 tokens left for future games. Please contact the president/admin to pay via Australian PayID for your next 20 games!
+                    You're locked into this game, but have 0 tokens left for future games. Top-up rate: <strong>$20 = 10 games/tokens</strong>. Please contact Admin to top up!
                   </p>
                 </motion.div>
               );
@@ -759,7 +760,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                 <span>
                   You have <strong className="text-[#00ff66]">{userTokens}</strong> {userTokens === 1 ? 'game token' : 'game tokens'} available
                 </span>
-                <span className="text-white/30 hidden sm:inline">• Australian PayID default</span>
+                <span className="text-white/30 hidden sm:inline">• $20 = 10 games</span>
               </div>
             );
           })()}
@@ -884,8 +885,8 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                             : (isIn ? "text-[#00ff66]" : "text-white/40 group-hover:text-white")
                       )}>
                         {(() => {
-                          if (isOutOfTokens && !isIn) return "Tap to Contact President / Admin";
-                          if (isOneTokenLeft && !isIn) return "⚠️ Final Game Token • Pay Admin Next";
+                          if (isOutOfTokens && !isIn) return "Tap to Contact Admin";
+                          if (isOneTokenLeft && !isIn) return "⚠️ Final Game Token • Contact Admin Next ($20 = 10 Games)";
                           if (!isIn) return "Ready to play?";
                           const myRSVP = rsvps.find(r => r.user_id === user?.id);
                           if (myRSVP?.status === 'confirmed') {
@@ -1061,7 +1062,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                     <span className="font-bold">{rsvp.profiles?.full_name || `Player (${rsvp.user_id.slice(0, 5)})`}</span>
                     {profile?.is_admin && rsvp.profiles && (
                       <span 
-                        title={(rsvp.profiles.game_tokens ?? 0) === 1 ? '⚠️ 1 Game Left! (Needs cash next match)' : (rsvp.profiles.game_tokens ?? 0) <= 0 ? '🚨 0 Games Available! (Needs Cash)' : `Game tokens remaining: ${rsvp.profiles.game_tokens}`}
+                        title={(rsvp.profiles.game_tokens ?? 0) === 1 ? '⚠️ 1 Game Left! ($20 = 10 games - contact Admin)' : (rsvp.profiles.game_tokens ?? 0) <= 0 ? '🚨 0 Games Available! ($20 = 10 games - contact Admin)' : `Game tokens remaining: ${rsvp.profiles.game_tokens}`}
                         className={cn(
                           "text-[9px] font-black uppercase px-2 py-0.5 rounded-full border tracking-wider flex items-center gap-1",
                           (rsvp.profiles.game_tokens ?? 0) === 1
@@ -1100,7 +1101,7 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                     <span className="font-bold">{rsvp.profiles?.full_name || `Player (${rsvp.user_id.slice(0, 5)})`}</span>
                     {profile?.is_admin && rsvp.profiles && (
                       <span 
-                        title={(rsvp.profiles.game_tokens ?? 0) === 1 ? '⚠️ 1 Game Left! (Needs cash next match)' : (rsvp.profiles.game_tokens ?? 0) <= 0 ? '🚨 0 Games Available! (Needs Cash)' : `Game tokens remaining: ${rsvp.profiles.game_tokens}`}
+                        title={(rsvp.profiles.game_tokens ?? 0) === 1 ? '⚠️ 1 Game Left! ($20 = 10 games - contact Admin)' : (rsvp.profiles.game_tokens ?? 0) <= 0 ? '🚨 0 Games Available! ($20 = 10 games - contact Admin)' : `Game tokens remaining: ${rsvp.profiles.game_tokens}`}
                         className={cn(
                           "text-[9px] font-black uppercase px-2 py-0.5 rounded-full border tracking-wider flex items-center gap-1",
                           (rsvp.profiles.game_tokens ?? 0) === 1
@@ -1181,44 +1182,29 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                   Cannot RSVP Without Tokens
                 </h3>
                 <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
-                  You have run out of game credits. You must contact the <strong className="text-white">President / Admin (Charley Moraes)</strong> to pay and get <strong className="text-[#00ff66]">20 games</strong> added to your account.
+                  You have run out of game credits. Please <strong className="text-white">Contact Admin</strong> to top up your account: <strong className="text-[#00ff66]">$20 = 10 games/tokens</strong>.
                 </p>
               </div>
 
-              {/* Payment Details Box with 1-Click Copy */}
+              {/* Payment Details Box */}
               <div className="bg-[#0f1118] border border-white/10 rounded-2xl p-4 text-left space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-white/50">Payment Method</span>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-white/50">Top-Up Rate</span>
                   <span className="text-[10px] bg-pitch/20 text-pitch border border-pitch/30 px-2 py-0.5 rounded font-black uppercase tracking-wider">
-                    Default
+                    $20 = 10 Games
                   </span>
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-white flex items-center gap-2">
-                    <span>🇦🇺 Australian PayID</span>
+                  <div className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                    <span>⚽ $20 = 10 games / tokens ($2/game)</span>
                   </div>
-                  <p className="text-xs text-white/60 leading-relaxed mt-1">
-                    Australian PayID is the primary payment method (or cash in hand for pitch lights).
+                  <p className="text-xs text-white/70 leading-relaxed mt-1">
+                    Payment Method: Australian PayID or Cash in hand for pitch lights
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between bg-white/5 p-2.5 rounded-xl border border-white/10 text-xs font-mono text-white">
-                  <span className="truncate">charley.moraes@gmail.com</span>
-                  <button
-                    type="button"
-                    onClick={handleCopyPayID}
-                    className="ml-2 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-sans text-[11px] font-bold flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
-                  >
-                    {copiedPayId ? (
-                      <>
-                        <Check size={12} className="text-emerald-400" /> Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={12} /> Copy PayID
-                      </>
-                    )}
-                  </button>
+                <div className="bg-white/5 p-3 rounded-xl border border-white/10 text-xs text-white/80 leading-relaxed">
+                  Please contact the Admin directly to arrange payment and have your 10 tokens added immediately.
                 </div>
               </div>
 
@@ -1227,11 +1213,11 @@ export default function MatchView({ user, profile, onGoToAdmin }: MatchViewProps
                 <button
                   type="button"
                   onClick={() => {
-                    window.open('mailto:charley.moraes@gmail.com?subject=PSG%20Perth%20Game%20Tokens%20Top-Up&body=Hi%20Charley,%20I%20would%20like%20to%20pay%20via%20PayID%20and%20get%2020%20game%20tokens%20added%20to%20my%20account.', '_blank');
+                    window.open('mailto:charley.moraes@gmail.com?subject=PSG%20Perth%20Game%20Tokens%20Top-Up&body=Hi%20Charley,%20I%20would%20like%20to%20top%20up%20my%20game%20tokens%20($20%20=%2010%20games).', '_blank');
                   }}
                   className="w-full min-h-[44px] bg-[#00ff66] text-black py-3 rounded-2xl font-black text-xs uppercase tracking-wider hover:bg-[#00e65c] transition-all shadow-[0_0_20px_rgba(0,255,102,0.3)] flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Mail size={15} /> Message Admin to Pay
+                  <Mail size={15} /> Contact Admin
                 </button>
 
                 {profile?.is_admin ? (

@@ -104,7 +104,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
     }
   };
 
-  const addCashTokens = async (profile: Profile, count = 20) => {
+  const addCashTokens = async (profile: Profile, count = 10) => {
     const current = profile.game_tokens ?? 0;
     await updateTokens(profile.id, current + count);
   };
@@ -519,7 +519,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
           </span>
           <div>
             <div className="text-white font-black text-xs sm:text-sm">
-              Payment Method: <span className="text-[#FFBE0B]">Australian PayID (default)</span> or Cash in hand for pitch lights
+              Payment Method: <span className="text-[#FFBE0B]">Australian PayID</span> or Cash in hand for pitch lights • <span className="text-[#00ff66]">$20 = 10 games/tokens</span>
             </div>
             <div className="text-white/50 text-[11px] mt-0.5 font-medium">
               Manage member game tokens directly using the token balance controls.

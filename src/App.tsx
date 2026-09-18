@@ -462,8 +462,8 @@ export default function App() {
                 )}
                 title={
                   (profile.game_tokens ?? 0) === 1
-                    ? "⚠️ ATTENTION: Only 1 game available! This is your final game. Remember to pay cash to the admin (for pitch lights) to get 20 more games credited."
-                    : `Available games: ${profile.game_tokens ?? 0}. Cash paid in hand for pitch lights.`
+                    ? "⚠️ ATTENTION: Only 1 game available! This is your final game. Top-up rate: $20 = 10 games/tokens. Contact Admin (Payment Method: Australian PayID or Cash in hand for pitch lights)."
+                    : `Available games: ${profile.game_tokens ?? 0}. Top-up rate: $20 = 10 games/tokens. Payment Method: Australian PayID or Cash in hand for pitch lights.`
                 }
               >
                 <Ticket 

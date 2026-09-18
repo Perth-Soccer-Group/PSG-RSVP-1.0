@@ -441,7 +441,7 @@ export default function AdminView({ initialTab = 'matches', onTabChange }: Admin
     }
   };
 
-  const addCashTokens = async (profile: Profile, count = 20) => {
+  const addCashTokens = async (profile: Profile, count = 10) => {
     const current = profile.game_tokens ?? 0;
     await updateTokens(profile.id, current + count);
   };

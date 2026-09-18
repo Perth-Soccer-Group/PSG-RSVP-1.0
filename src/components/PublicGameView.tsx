@@ -347,7 +347,7 @@ export default function PublicGameView({ gameId }: PublicGameViewProps) {
           if (currentTokens === 1) {
             setRsvpMessage({ 
               type: 'success', 
-              text: "You're on it! ⚠️ That was your 20th game (0 tokens remaining). Please contact the president/admin to pay via Australian PayID before your next match!" 
+              text: "You're on it! ⚠️ That was your final game token (0 tokens remaining). Top-up rate: $20 = 10 games/tokens. Please contact Admin before your next match!" 
             });
           } else {
             setRsvpMessage({ 
@@ -1015,11 +1015,11 @@ export default function PublicGameView({ gameId }: PublicGameViewProps) {
                     <AlertCircle size={18} className="text-red-400 shrink-0" />
                     <div className="text-left">
                       <p className="text-xs font-black text-white uppercase tracking-wider">0 Games Available</p>
-                      <p className="text-[11px] text-red-300/80 leading-tight">Australian PayID default (or cash for lights). Tap to contact Admin.</p>
+                      <p className="text-[11px] text-red-300/80 leading-tight">Top-up rate: $20 = 10 games. Payment Method: Australian PayID or Cash in hand for pitch lights. Tap to contact Admin.</p>
                     </div>
                   </div>
                   <span className="text-[10px] font-black uppercase tracking-wider bg-red-500/20 text-red-300 px-2.5 py-1 rounded-full border border-red-500/30 shrink-0 group-hover:bg-red-500/30">
-                    Fix ⚡
+                    Contact Admin ⚡
                   </span>
                 </div>
               )}
@@ -1029,7 +1029,7 @@ export default function PublicGameView({ gameId }: PublicGameViewProps) {
                 <div className="p-3 rounded-2xl bg-amber-500/10 border border-amber-500/30 flex items-center gap-2.5">
                   <AlertCircle size={16} className="text-amber-400 shrink-0" />
                   <p className="text-[11px] text-amber-200 leading-tight">
-                    ⚠️ <strong>1 token available</strong> — Joining this match will be your 20th game. Remember to pay the admin via Australian PayID before your next match!
+                    ⚠️ <strong>1 token available</strong> — Joining this match will be your final credit. Top-up rate: <strong>$20 = 10 games/tokens</strong>. Contact Admin to top up!
                   </p>
                 </div>
               )}
@@ -1858,44 +1858,29 @@ export default function PublicGameView({ gameId }: PublicGameViewProps) {
                   Cannot RSVP Without Tokens
                 </h3>
                 <p className="text-xs sm:text-sm text-white/80 leading-relaxed">
-                  You have run out of game credits. You must contact the <strong className="text-white">President / Admin (Charley Moraes)</strong> to pay and get <strong className="text-[#00ff66]">20 games</strong> added to your account.
+                  You have run out of game credits. Please <strong className="text-white">Contact Admin</strong> to top up your account: <strong className="text-[#00ff66]">$20 = 10 games/tokens</strong>.
                 </p>
               </div>
 
-              {/* Payment Details Box with 1-Click Copy */}
+              {/* Payment Details Box */}
               <div className="bg-[#0f1118] border border-white/10 rounded-2xl p-4 text-left space-y-3">
                 <div className="flex items-center justify-between">
-                  <span className="text-[11px] font-black uppercase tracking-wider text-white/50">Payment Method</span>
+                  <span className="text-[11px] font-black uppercase tracking-wider text-white/50">Top-Up Rate</span>
                   <span className="text-[10px] bg-pitch/20 text-pitch border border-pitch/30 px-2 py-0.5 rounded font-black uppercase tracking-wider">
-                    Default
+                    $20 = 10 Games
                   </span>
                 </div>
                 <div>
-                  <div className="text-sm font-bold text-white flex items-center gap-2">
-                    <span>🇦🇺 Australian PayID</span>
+                  <div className="text-sm sm:text-base font-black text-white flex items-center gap-2">
+                    <span>⚽ $20 = 10 games / tokens ($2/game)</span>
                   </div>
-                  <p className="text-xs text-white/60 leading-relaxed mt-1">
-                    Australian PayID is the primary payment method (or cash in hand for pitch lights).
+                  <p className="text-xs text-white/70 leading-relaxed mt-1">
+                    Payment Method: Australian PayID or Cash in hand for pitch lights
                   </p>
                 </div>
 
-                <div className="flex items-center justify-between bg-white/5 p-2.5 rounded-xl border border-white/10 text-xs font-mono text-white">
-                  <span className="truncate">charley.moraes@gmail.com</span>
-                  <button
-                    type="button"
-                    onClick={handleCopyPayID}
-                    className="ml-2 px-2.5 py-1 rounded-lg bg-white/10 hover:bg-white/20 text-white font-sans text-[11px] font-bold flex items-center gap-1 shrink-0 transition-colors cursor-pointer"
-                  >
-                    {copiedPayId ? (
-                      <>
-                        <Check size={12} className="text-emerald-400" /> Copied!
-                      </>
-                    ) : (
-                      <>
-                        <Copy size={12} /> Copy PayID
-                      </>
-                    )}
-                  </button>
+                <div className="bg-white/5 p-3 rounded-xl border border-white/10 text-xs text-white/80 leading-relaxed">
+                  Please contact the Admin directly to arrange payment and have your 10 tokens added immediately.
                 </div>
               </div>
 
@@ -1904,11 +1889,11 @@ export default function PublicGameView({ gameId }: PublicGameViewProps) {
                 <button
                   type="button"
                   onClick={() => {
-                    window.open('mailto:charley.moraes@gmail.com?subject=PSG%20Perth%20Game%20Tokens%20Top-Up&body=Hi%20Charley,%20I%20would%20like%20to%20pay%20via%20PayID%20and%20get%2020%20game%20tokens%20added%20to%20my%20account.', '_blank');
+                    window.open('mailto:charley.moraes@gmail.com?subject=PSG%20Perth%20Game%20Tokens%20Top-Up&body=Hi%20Charley,%20I%20would%20like%20to%20top%20up%20my%20game%20tokens%20($20%20=%2010%20games).', '_blank');
                   }}
                   className="w-full min-h-[44px] bg-[#00ff66] text-black py-3 rounded-2xl font-black text-xs uppercase tracking-wider hover:bg-[#00e65c] transition-all shadow-[0_0_20px_rgba(0,255,102,0.3)] flex items-center justify-center gap-2 cursor-pointer"
                 >
-                  <Mail size={15} /> Message Admin to Pay
+                  <Mail size={15} /> Contact Admin
                 </button>
 
                 {currentUserProfile?.is_admin && (
