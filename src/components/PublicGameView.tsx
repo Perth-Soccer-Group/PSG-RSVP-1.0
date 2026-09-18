@@ -174,7 +174,12 @@ export default function PublicGameView({ gameId }: PublicGameViewProps) {
         .eq('id', userId)
         .single();
       if (data) {
-        setCurrentUserProfile(data);
+        const tokens = (data.game_tokens !== null && data.game_tokens !== undefined) ? data.game_tokens : 2;
+        setCurrentUserProfile({
+          ...data,
+          is_approved: data.is_approved ?? true,
+          game_tokens: tokens
+        });
       }
     } catch (err) {
       console.error('Error fetching user profile:', err);

@@ -60,7 +60,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
         setProfiles(data.map((p: any) => ({
           ...p,
           is_approved: p.is_approved ?? true,
-          game_tokens: p.game_tokens ?? 0
+          game_tokens: p.game_tokens ?? 2
         })));
       }
     } catch (err: any) {
@@ -109,7 +109,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
     await updateTokens(profile.id, current + count);
   };
 
-  const approveUser = async (profileId: string, initialTokens = 0) => {
+  const approveUser = async (profileId: string, initialTokens = 2) => {
     setApprovingId(profileId);
     try {
       let updatePayload: any = { is_approved: true };
@@ -283,7 +283,7 @@ export default function PlayersManagement({ onRefreshParent }: PlayersManagement
           </div>
           <button
             onClick={() => {
-              navigator.clipboard.writeText('ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS game_tokens INTEGER NOT NULL DEFAULT 0;');
+              navigator.clipboard.writeText('ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS game_tokens INTEGER NOT NULL DEFAULT 2;');
               showStatus('success', 'SQL copied to clipboard! Paste and run it in Supabase SQL Editor.');
             }}
             className="bg-[#FFBE0B] text-black px-4 py-2 rounded-full text-xs font-black uppercase tracking-wider flex items-center gap-2 self-start sm:self-center shrink-0 hover:bg-[#FFD154] transition-colors"

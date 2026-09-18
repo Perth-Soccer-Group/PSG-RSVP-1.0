@@ -104,7 +104,7 @@ export default function AdminView({ initialTab = 'matches', onTabChange }: Admin
         setProfiles(profilesRes.data.map((p: any) => ({
           ...p,
           is_approved: p.is_approved ?? true,
-          game_tokens: p.game_tokens ?? 0
+          game_tokens: p.game_tokens ?? 2
         })));
       }
     } catch (err: any) {
@@ -446,7 +446,7 @@ export default function AdminView({ initialTab = 'matches', onTabChange }: Admin
     await updateTokens(profile.id, current + count);
   };
 
-  const approveUser = async (profileId: string, initialTokens = 0) => {
+  const approveUser = async (profileId: string, initialTokens = 2) => {
     setApprovingId(profileId);
     try {
       // First attempt update with game_tokens and is_approved
@@ -640,7 +640,7 @@ export default function AdminView({ initialTab = 'matches', onTabChange }: Admin
           </div>
           <button
             onClick={() => {
-              navigator.clipboard.writeText('ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS game_tokens INTEGER NOT NULL DEFAULT 0;');
+              navigator.clipboard.writeText('ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS game_tokens INTEGER NOT NULL DEFAULT 2;');
               showStatus('success', 'SQL copied to clipboard! Paste and run it in Supabase SQL Editor.');
             }}
             className="bg-yellow-500 text-black px-3 py-2 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 self-start sm:self-center shrink-0 hover:bg-yellow-400 transition-colors"

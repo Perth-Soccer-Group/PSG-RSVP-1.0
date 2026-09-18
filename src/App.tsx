@@ -119,25 +119,25 @@ export default function App() {
         .single();
       
       if (error && error.code === 'PGRST116') {
-        // Profile doesn't exist, try to create it
-        console.log('Profile missing, creating...');
+        // Profile doesn't exist, try to create it with 2 welcome tokens & auto-approved
+        console.log('Profile missing, creating with 2 starter tokens & auto-approved...');
         const profilePayload: any = {
           id: userId,
           full_name: email ? email.split('@')[0] : 'New Player',
+          email,
           is_admin: isCharley ? true : false,
+          is_approved: true, // Auto-approved on first login so players can RSVP straight away!
+          game_tokens: 2     // Welcome bonus: 2 games/tokens credited automatically!
         };
 
         let newProfile: any = null;
         let createError: any = null;
 
-        // Try to insert WITH is_approved first
+        // Try to insert with is_approved and game_tokens
         try {
           const { data: p1, error: e1 } = await supabase
             .from('profiles')
-            .insert({
-              ...profilePayload,
-              is_approved: isCharley ? true : false
-            })
+            .insert(profilePayload)
             .select()
             .single();
           newProfile = p1;
@@ -147,20 +147,47 @@ export default function App() {
           createError = e1Err;
         }
 
-        // If fails because is_approved column is missing, retry WITHOUT it
-        if (createError && (createError.message?.includes('is_approved') || createError.code === 'PGRST204')) {
-          console.log('Detected missing is_approved column, retrying insert with only essential columns...');
+        // If fails because game_tokens or is_approved column is missing, retry with fallbacks
+        if (createError && (createError.message?.includes('game_tokens') || createError.code === '42703')) {
+          console.log('Detected missing game_tokens column, retrying insert without it...');
           try {
             const { data: p2, error: e2 } = await supabase
               .from('profiles')
-              .insert(profilePayload)
+              .insert({
+                id: userId,
+                full_name: email ? email.split('@')[0] : 'New Player',
+                email,
+                is_admin: isCharley ? true : false,
+                is_approved: true
+              })
               .select()
               .single();
             newProfile = p2;
             createError = e2;
           } catch (e2Err: any) {
-            console.error('Catch on second insert:', e2Err);
+            console.warn('Catch on second insert:', e2Err);
             createError = e2Err;
+          }
+        }
+
+        if (createError && (createError.message?.includes('is_approved') || createError.code === 'PGRST204' || createError.code === '42703')) {
+          console.log('Detected missing is_approved column, retrying insert with minimal columns...');
+          try {
+            const { data: p3, error: e3 } = await supabase
+              .from('profiles')
+              .insert({
+                id: userId,
+                full_name: email ? email.split('@')[0] : 'New Player',
+                email,
+                is_admin: isCharley ? true : false
+              })
+              .select()
+              .single();
+            newProfile = p3;
+            createError = e3;
+          } catch (e3Err: any) {
+            console.error('Catch on third insert:', e3Err);
+            createError = e3Err;
           }
         }
 
@@ -174,36 +201,47 @@ export default function App() {
             email: email || newProfile.email,
             is_approved: newProfile.is_approved ?? true,
             is_admin: isCharley ? true : !!newProfile.is_admin,
-            game_tokens: newProfile.game_tokens ?? 0
+            game_tokens: newProfile.game_tokens ?? 2
           });
         } else {
-          // Fallback if RLS or insert completely failed but we want them to log in
+          // Fallback if RLS or insert completely failed but we want them to log in and RSVP
           setProfile({
             id: userId,
             full_name: email ? email.split('@')[0] : 'New Player',
             email,
             is_admin: isCharley ? true : false,
-            is_approved: isCharley ? true : false,
-            game_tokens: 0,
+            is_approved: true,
+            game_tokens: 2,
             created_at: new Date().toISOString()
           });
         }
       } else if (error) {
         console.error('Error fetching profile:', error);
         // If there is an error fetching profile (e.g. database RLS, connection, etc.)
-        // let's still grant local profile so they are not blocked, especially for Charley!
+        // grant local profile with 2 starter tokens and approved access
         setProfile({
           id: userId,
           full_name: email ? email.split('@')[0] : 'Player',
           email,
           is_admin: isCharley ? true : false,
-          is_approved: isCharley ? true : false,
-          game_tokens: 0,
+          is_approved: true,
+          game_tokens: 2,
           created_at: new Date().toISOString()
         });
       } else if (data) {
         const hasAdmin = data.is_admin;
         const hasApproved = data.is_approved ?? true;
+
+        // If an existing user has no game_tokens recorded yet (null/undefined), grant them 2 welcome tokens!
+        let userTokens = data.game_tokens;
+        if (userTokens === null || userTokens === undefined) {
+          userTokens = 2;
+          try {
+            await supabase.from('profiles').update({ game_tokens: 2 }).eq('id', userId);
+          } catch (tokUpdateErr) {
+            console.warn('Could not auto-seed tokens in database:', tokUpdateErr);
+          }
+        }
 
         if (isCharley && (!hasAdmin || !hasApproved)) {
           console.log('Ensuring Charley has admin status...');
@@ -250,7 +288,7 @@ export default function App() {
             email: email || (updatedProfile || data).email,
             is_admin: true,
             is_approved: true,
-            game_tokens: (updatedProfile || data).game_tokens ?? 0
+            game_tokens: (updatedProfile || data).game_tokens ?? userTokens ?? 2
           });
         } else {
           setProfile({
@@ -258,7 +296,7 @@ export default function App() {
             email: email || data.email,
             is_approved: data.is_approved ?? true,
             is_admin: isCharley ? true : !!data.is_admin,
-            game_tokens: data.game_tokens ?? 0
+            game_tokens: userTokens ?? 2
           });
         }
       }
